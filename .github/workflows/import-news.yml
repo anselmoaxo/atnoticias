@@ -1,0 +1,29 @@
+name: Importar notícias dos feeds
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: import-news-hourly
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Importar feeds RSS no Neon
+        run: npm run news:import
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

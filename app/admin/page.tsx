@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { AdminPanel } from "@/components/admin-panel";
+import { redirect } from "next/navigation";
+import { EditorialAdmin } from "@/components/editorial-admin";
+import { getAdminSession } from "@/lib/admin";
 
-export const metadata: Metadata = { title: "Painel demonstrativo" };
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Painel editorial" };
 
-export default function AdminPage() {
-  return <AdminPanel />;
+export default async function AdminPage() {
+  const user = await getAdminSession();
+  if (!user) redirect("/admin/entrar");
+  return <EditorialAdmin email={user.email} />;
 }

@@ -15,17 +15,30 @@ Abra http://localhost:3000. Para gerar e executar a versão de produção, use `
 
 ## O que está implementado
 
-- Página inicial responsiva, categorias, busca, página de privacidade e metadados em português.
-- Convite acessível para newsletter, validação no navegador e lembrança local por sete dias quando fechado ou recusado.
-- Painel editorial em `/admin` para experimentar rascunhos, edição, publicação e arquivamento durante a sessão atual.
-- Não há notícias de exemplo, login, API, persistência, inscrição ou envio de e-mail. O painel não é protegido e não deve receber conteúdo real.
+- Página inicial responsiva, categorias, busca, páginas de leitura com links para as fontes e metadados em português.
+- Importação RSS sem geração por IA: o portal salva os títulos e as descrições fornecidos pelos feeds, com fonte e data originais, e evita duplicatas.
+- Coletor inicial: Tecnoblog, Tecmundo e The Verge. O último publica em inglês. Notícias com mais de sete dias ou sem descrição/data são ignoradas.
+- Persistência no Neon por `@neondatabase/serverless`, migração SQL em `db/migrations/001_news_articles.sql` e comandos `npm run db:migrate` e `npm run news:import`.
+- `/admin` exige sessão Neon Auth e corresponde ao único `ADMIN_EMAIL`; permite editar, arquivar e excluir notícias importadas. Não há cadastro público.
+- GitHub Actions agenda a coleta a cada hora. É necessário cadastrar `DATABASE_URL` como secret do repositório GitHub para habilitar o job.
+- Newsletter e envio de e-mails ainda não foram conectados; nenhum endereço é coletado nesta etapa.
 
-## Integrações futuras
+## Configuração local
 
-Não há variáveis de ambiente necessárias para executar a demonstração. Para transformar o painel e a newsletter em serviços reais, será necessário implementar API e configurar credenciais no ambiente de servidor (nunca no navegador):
+Copie `.env.example` para `.env.local`. Preencha `DATABASE_URL` com a URL pooled do Neon. `NEON_AUTH_BASE_URL` deve corresponder ao endpoint Neon Auth deste projeto; gere um `NEON_AUTH_COOKIE_SECRET` aleatório com pelo menos 32 caracteres; e defina `ADMIN_EMAIL` para o mesmo e-mail já cadastrado no Neon Auth. Esse será o único e-mail autorizado a entrar no painel. Não compartilhe nem versiona `.env.local`.
 
-- `DATABASE_URL` com a URL de conexão do Neon, configurada apenas no servidor. Para produção serverless, prefira a URL com pooler fornecida pelo Neon.
-- `RESEND_API_KEY` exclusivamente no servidor para envio de e-mail; domínio remetente verificado também será necessário.
-- `NEXT_PUBLIC_SITE_URL` com o domínio real para metadados canônicos e links de produção.
+`CRON_SECRET` protege a rota alternativa `GET /api/cron/import-news` caso use um agendador HTTP externo. O workflow horário do GitHub executa o script diretamente e só precisa do secret de Actions `DATABASE_URL`. Para executar manualmente, use `npm run news:import`.
 
-Os nomes acima documentam uma integração futura; este repositório ainda não os lê nem conecta Neon ou Resend. A demonstração não acessa o banco. Antes de coletar dados, implementar autenticação e autorização no servidor, persistência com controles de acesso, validação e limitação de abuso, cancelamento de inscrição e uma política de privacidade compatível.
+```powershell
+Copy-Item .env.example .env.local
+npm install
+npm run db:migrate
+npm run news:import
+npm run dev
+```
+
+O primeiro e-mail/senha precisa existir no Neon Auth. A rota do portal não permite cadastro público. O importador usa os campos disponíveis no RSS e não copia o corpo integral da matéria.
+
+## Newsletter (etapa posterior)
+
+`RESEND_API_KEY` será usada somente quando o envio diário e o gerenciamento de cancelamento forem implementados. Ela não é necessária para importar notícias e permanece sem uso nesta etapa. `NEXT_PUBLIC_SITE_URL` deve receber o domínio de produção quando definido.
