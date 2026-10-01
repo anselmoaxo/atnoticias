@@ -17,7 +17,7 @@ Abra http://localhost:3000. Para gerar e executar a versão de produção, use `
 
 - Página inicial responsiva, categorias, busca, páginas de leitura com links para as fontes e metadados em português.
 - Importação RSS sem geração por IA: o portal salva os títulos e as descrições fornecidos pelos feeds, com fonte e data originais, e evita duplicatas.
-- Coletor inicial: Tecnoblog, Canaltech e The Verge. O último publica em inglês. Notícias com mais de sete dias ou sem descrição/data são ignoradas. A categoria vem dos marcadores do feed e de termos do título/descrição; quando não há sinal suficiente, usa a categoria geral “Tecnologia”.
+- Coletor inicial: Tecnoblog e Canaltech, ambos em português do Brasil. Notícias com mais de sete dias ou sem descrição/data são ignoradas. A categoria vem dos marcadores do feed e de termos do título/descrição; quando não há sinal suficiente, usa a categoria geral “Tecnologia”.
 - Persistência no Neon por `@neondatabase/serverless`; as migrações SQL em `db/migrations/` são aplicadas por `npm run db:migrate`. Use `npm run news:import` para importar feeds e `npm run news:reclassify` para ajustar matérias importadas que ainda não foram editadas no painel.
 - `/admin` exige sessão Neon Auth e corresponde ao único `ADMIN_EMAIL`; permite editar, arquivar e excluir notícias importadas. Não há cadastro público.
 - GitHub Actions agenda a coleta a cada hora. É necessário cadastrar `DATABASE_URL` como secret do repositório GitHub para habilitar o job.

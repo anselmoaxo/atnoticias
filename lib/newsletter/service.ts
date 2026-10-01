@@ -9,7 +9,7 @@ export function normalizeNewsletterEmail(value: unknown): string | null {
 }
 
 export async function registerNewsletterEmail(email: string, clientAddress: string): Promise<"saved" | "rate-limited"> {
-  const secret = process.env.NEWSLETTER_RATE_LIMIT_SECRET || process.env.CRON_SECRET || process.env.NEON_AUTH_COOKIE_SECRET;
+  const secret = process.env.NEWSLETTER_RATE_LIMIT_SECRET || process.env.CRON_SECRET || process.env.NEON_AUTH_COOKIE_SECRET || process.env.DATABASE_URL;
   if (!secret || secret.length < 32) throw new Error("RateLimitSecretUnavailable");
   const clientKey = createHmac("sha256", secret).update(`newsletter-signup:${clientAddress}`).digest("hex");
   const sql = getDb();
