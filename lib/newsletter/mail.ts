@@ -1,12 +1,13 @@
 const subject = "Confirme sua inscrição na newsletter da Anselmo Tech Notícias";
 
 export function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "";
+  return (process.env.NEXT_PUBLIC_SITE_URL || production || "http://localhost:3000").replace(/\/+$/, "");
 }
 
 export async function sendConfirmationEmail(to: string, token: string) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.NEWSLETTER_FROM_EMAIL;
+  const from = process.env.NEWSLETTER_FROM_EMAIL || process.env.EMAIL_FROM;
   if (!apiKey || !from) throw new Error("ResendNotConfigured");
 
   const link = `${siteUrl()}/newsletter/confirmar?token=${encodeURIComponent(token)}`;
