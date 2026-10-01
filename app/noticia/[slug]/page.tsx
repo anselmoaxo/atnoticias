@@ -33,15 +33,16 @@ export default async function ArticlePage({ params }: Props) {
   const date = new Date(article.published_at).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" });
   const readingMinutes = Math.max(1, Math.ceil(`${article.title} ${article.summary}`.trim().split(/\s+/).length / 220));
 
-  return <main className="article-page">
-    <header className="article-top wrap"><Link href="/" className="brand" aria-label="Anselmo Tech Notícias, início"><span className="brand-mark">AT</span><span className="brand-name">anselmo<span> tech notícias</span></span></Link><Link href="/" className="back-link">← Voltar às notícias</Link></header>
-    <article className="article-reading">
-      <Link className="article-category" href={category ? `/categoria/${category.slug}` : "/"}>{article.category}</Link>
+  return <div className="p-site">
+    <div className="p-wrap"><header className="p-header"><Link href="/" className="p-brand" aria-label="Anselmo Tech Notícias, início"><span className="p-dot" aria-hidden="true" />Anselmo Tech <b>Notícias</b></Link><Link href="/" className="p-linkbtn">Todas as notícias</Link></header></div>
+    <main><article className="p-article">
+      <Link className="p-cat" href={category ? `/categoria/${category.slug}` : "/"}>{article.category}</Link>
       <h1>{article.title}</h1>
-      <p className="article-lead">{article.summary}</p>
-      <div className="article-byline"><span>{article.source_name}</span><span>·</span><time dateTime={article.published_at}>{date}</time><span>·</span><span>{readingMinutes} min de leitura</span></div>
-      {article.image_url ? <div className="article-cover"><Image src={article.image_url} alt="" width={1200} height={675} sizes="(max-width: 760px) 100vw, 840px" unoptimized priority /></div> : null}
-      <div className="article-copy"><p>{article.summary}</p><p className="source-note">Esta página mostra o título e a descrição publicados no feed de {article.source_name}. Para ler a matéria completa, acesse a publicação original.</p><a className="dark-button" href={article.source_url} target="_blank" rel="noopener noreferrer">Ler matéria na fonte original <span>↗</span></a></div>
-    </article>
-  </main>;
+      <p className="p-lede">{article.summary}</p>
+      <div className="p-byline"><b>{article.source_name}</b><time dateTime={article.published_at}>{date}</time><span>{readingMinutes} min de leitura</span></div>
+      {article.image_url ? <div className="p-cover"><Image src={article.image_url} alt="" width={1200} height={675} sizes="(max-width: 760px) 100vw, 700px" unoptimized priority /></div> : null}
+      <p className="p-note">Esta página mostra o título e a descrição publicados por {article.source_name}. Para ler a matéria completa, acesse o site original.</p>
+      <a className="p-btn" href={article.source_url} target="_blank" rel="noopener noreferrer">Ler a matéria em {article.source_name}</a>
+    </article></main>
+  </div>;
 }

@@ -6,6 +6,15 @@ import { useEffect, useRef, useState } from "react";
 import { categories, type NewsArticle } from "@/lib/content";
 
 const dismissKey = "anselmo-tech-noticias-newsletter-dismissed-until";
+const timeZone = "America/Sao_Paulo";
+
+function dayKey(iso: string) {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone });
+}
+
+function timeLabel(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone });
+}
 
 function readingMinutes(article: NewsArticle) {
   return Math.max(1, Math.ceil(`${article.title} ${article.summary}`.trim().split(/\s+/).length / 220));
@@ -23,18 +32,15 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [message, setMessage] = useState("");
+  const [newsletterSaving, setNewsletterSaving] = useState(false);
+  const [messageTone, setMessageTone] = useState<"success" | "error">("error");
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const featured = initialArticles[0];
   const filteredArticles = initialArticles.filter((article) => {
     const matchesCategory = !category || categories.find((item) => item.slug === category)?.name === article.category;
     const term = query.trim().toLocaleLowerCase("pt-BR");
     return matchesCategory && (!term || `${article.title} ${article.summary} ${article.source_name}`.toLocaleLowerCase("pt-BR").includes(term));
   });
-
-  function dateLabel(value: string) {
-    return new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" });
-  }
 
   function wasDismissed() {
     try {
@@ -84,7 +90,7 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
     if (!wasDismissed()) setNewsletterOpen(true);
   }
 
-  function submitNewsletter(event: React.FormEvent<HTMLFormElement>) {
+  async function submitNewsletter(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -95,100 +101,146 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
       setMessage("Marque a autorização para receber os e-mails.");
       return;
     }
-    setMessage("A inscrição ainda não está disponível: o serviço de newsletter não foi conectado, então seu e-mail não foi enviado nem salvo.");
+    setNewsletterSaving(true);
+    try {
+      const response = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, consent, website: "" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
+      setMessageTone("success");
+      setMessage(data.message ?? "Inscrição salva com sucesso. O envio de e-mails será ativado mais adiante.");
+      setEmail("");
+      setConsent(false);
+    } catch (reason) {
+      setMessageTone("error");
+      setMessage(reason instanceof Error ? reason.message : "Não foi possível salvar sua inscrição agora.");
+    } finally {
+      setNewsletterSaving(false);
+    }
   }
 
-  function navigateCategory(slug: string) {
-    setCategory(slug);
-    openNewsletterIfAllowed();
+  const now = new Date();
+  const todayKey = dayKey(now.toISOString());
+  const yesterdayKey = dayKey(new Date(now.getTime() - 86400000).toISOString());
+  const lead = !query ? filteredArticles[0] : undefined;
+  const rest = (lead ? filteredArticles.slice(1) : filteredArticles).slice(0, 40);
+  const categoryName = categories.find((item) => item.slug === category)?.name;
+
+  function dayHeading(iso: string) {
+    const key = dayKey(iso);
+    if (key === todayKey) return "Hoje";
+    if (key === yesterdayKey) return "Ontem";
+    return new Date(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone });
   }
+
+  function renderItem(article: NewsArticle, isLead = false) {
+    const Heading = isLead ? "h2" : "h3";
+    return (
+      <article className={isLead ? "p-item p-lead" : "p-item"} key={article.id}>
+        <time className="p-time" dateTime={article.published_at}>{timeLabel(article.published_at)}</time>
+        <div className="p-row">
+          <div>
+            {isLead && <span className="p-flag">Mais recente</span>}
+            {!isLead && <div className="p-meta"><b>{article.source_name}</b><span>{article.category}</span></div>}
+            <Heading><Link href={`/noticia/${article.slug}`}>{article.title}</Link></Heading>
+            <p className="p-sum">{article.summary}</p>
+            {isLead && <div className="p-meta"><b>{article.source_name}</b><span>{article.category}</span><span>{readingMinutes(article)} min de leitura</span></div>}
+          </div>
+          {!isLead && article.image_url && (
+            <Link href={`/noticia/${article.slug}`} className="p-thumb" tabIndex={-1} aria-hidden="true">
+              <Image src={article.image_url} alt="" width={256} height={171} sizes="128px" unoptimized />
+            </Link>
+          )}
+        </div>
+      </article>
+    );
+  }
+
+  const feedItems: React.ReactNode[] = [];
+  let previousDay = lead ? dayKey(lead.published_at) : "";
+  rest.forEach((article) => {
+    const key = dayKey(article.published_at);
+    if (key !== previousDay) {
+      feedItems.push(<h3 className="p-day" key={`day-${key}`} suppressHydrationWarning>{dayHeading(article.published_at)}</h3>);
+      previousDay = key;
+    }
+    feedItems.push(renderItem(article));
+  });
 
   return (
-    <>
-      <header className="site-header">
-        <div className="header-top wrap">
-          <Link href="/" className="brand" aria-label="Anselmo Tech Notícias, início">
-            <span className="brand-mark" aria-hidden="true">AT</span>
-            <span className="brand-name">anselmo<span> tech notícias</span></span>
-          </Link>
-          <form className="search" role="search" onSubmit={(event) => event.preventDefault()}>
-            <label className="sr-only" htmlFor="site-search">Buscar notícias</label>
-            <span aria-hidden="true" className="search-icon">⌕</span>
-            <input id="site-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar notícias..." />
-            <kbd>Ctrl K</kbd>
-          </form>
-          <button className="newsletter-quick" onClick={() => setNewsletterOpen(true)}>Newsletter <span aria-hidden="true">↗</span></button>
+    <div className="p-site">
+      <div className="p-wrap">
+        <header className="p-header">
+          <Link href="/" className="p-brand" aria-label="Anselmo Tech Notícias, início"><span className="p-dot" aria-hidden="true" />Anselmo Tech <b>Notícias</b></Link>
+          <button className="p-linkbtn" onClick={() => setNewsletterOpen(true)}>Receber a newsletter</button>
+        </header>
+
+        <div className="p-layout">
+          <aside className="p-tools">
+            <form className="p-search" role="search" onSubmit={(event) => event.preventDefault()}>
+              <label className="sr-only" htmlFor="site-search">Buscar notícias</label>
+              <input id="site-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar notícias" />
+            </form>
+            <nav aria-label="Categorias">
+              <ul className="p-cats">
+                <li><Link href="/" aria-current={!category ? "page" : undefined} onClick={() => { setCategory(""); openNewsletterIfAllowed(); }}>Todas</Link></li>
+                {categories.map((item) => (
+                  <li key={item.slug}><Link href={`/categoria/${item.slug}`} aria-current={category === item.slug ? "page" : undefined} onClick={() => { setCategory(item.slug); openNewsletterIfAllowed(); }}>{item.name}</Link></li>
+                ))}
+              </ul>
+            </nav>
+          </aside>
+
+          <main className="p-feed" id="ultimas">
+            <h1 className="p-context">{categoryName ?? "Últimas notícias de tecnologia"}</h1>
+            {query && <p className="p-feedback" role="status">{filteredArticles.length ? `${filteredArticles.length} notícia(s) encontrada(s) para “${query}”.` : `Nenhum resultado para “${query}”.`}</p>}
+            {dataError ? (
+              <div className="p-empty"><h2>Não foi possível carregar as notícias.</h2><p>Atualize a página em instantes. Se o problema continuar, volte mais tarde.</p></div>
+            ) : filteredArticles.length ? (
+              <div className="p-river">
+                {lead && renderItem(lead, true)}
+                {feedItems}
+              </div>
+            ) : !query ? (
+              <div className="p-empty"><h2>{category ? "Ainda não há notícias nesta categoria." : "As notícias ainda não chegaram."}</h2><p>{category ? "Volte mais tarde ou escolha outra categoria." : "Elas aparecem aqui assim que as fontes forem sincronizadas, a cada hora."}</p></div>
+            ) : null}
+          </main>
+
+          <div className="p-extras">
+            {popularArticles.length > 0 && (
+              <section aria-labelledby="popular-title">
+                <h2 id="popular-title">Mais lidas</h2>
+                <ul className="p-popular">
+                  {popularArticles.slice(0, 4).map((article) => (
+                    <li key={article.id}><Link href={`/noticia/${article.slug}`}>{article.title}</Link><small>{article.source_name}, {article.views} leitura(s)</small></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <section className="p-news" aria-labelledby="news-title">
+              <h2 id="news-title">Newsletter</h2>
+              <p>Cadastre seu e-mail para receber as principais notícias de tecnologia assim que o envio começar.</p>
+              <button className="p-btn" onClick={() => setNewsletterOpen(true)}>Cadastrar e-mail</button>
+            </section>
+          </div>
         </div>
-        <nav className="category-nav" aria-label="Categorias">
-          <div className="wrap nav-inner">
-          <Link className={!category ? "nav-link active" : "nav-link"} href="/" onClick={() => { setCategory(""); openNewsletterIfAllowed(); }}>Todas</Link>
-            {categories.map((item) => (
-              <Link key={item.slug} className={category === item.slug ? "nav-link active" : "nav-link"} href={`/categoria/${item.slug}`} onClick={() => { setCategory(item.slug); openNewsletterIfAllowed(); }}>{item.name}</Link>
-            ))}
-          </div>
-        </nav>
-      </header>
 
-      <main className="wrap main-content">
-        <div className="eyebrow"><span className="live-dot" /> TECNOLOGIA, NO SEU RITMO <span className="eyebrow-line" /></div>
+        <footer className="p-footer">
+          <p>Reunimos os títulos e resumos publicados pelas fontes. A matéria completa fica no site original.</p>
+          <nav aria-label="Rodapé">
+            <button onClick={() => setNewsletterOpen(true)}>Newsletter</button>
+            <Link href="/privacidade">Privacidade</Link>
+            <a href="mailto:contato@anselmotechnoticias.example">Contato</a>
+            <Link href="/admin">Painel</Link>
+          </nav>
+        </footer>
+      </div>
 
-        <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-copy">
-            <div className="hero-kicker"><span className="kicker-square">T</span> {featured ? `DESTAQUE · ${featured.category.toLocaleUpperCase("pt-BR")}` : "UM NOVO JEITO DE ACOMPANHAR TECNOLOGIA"}</div>
-            <h1 id="hero-title">{featured ? featured.title : <>O futuro acontece.<br /><em>A gente traduz.</em></>}</h1>
-            <p>{featured?.summary ?? "Inteligência artificial, segurança, apps e tudo o que move o mundo digital — explicado com clareza, sem complicação."}</p>
-            {featured ? <Link className="hero-link" href={`/noticia/${featured.slug}`}>Ler notícia completa <span aria-hidden="true">↗</span></Link> : <a className="hero-link" href="#ultimas">Explore as últimas notícias <span aria-hidden="true">↓</span></a>}
-            <div className="hero-meta"><span>{featured ? featured.source_name.toLocaleUpperCase("pt-BR") : "INFORMAÇÃO COM CONTEXTO"}</span><span className="meta-separator">/</span><span>{featured ? dateLabel(featured.published_at).toLocaleUpperCase("pt-BR") : "FEITA PARA VOCÊ"}</span></div>
-          </div>
-          <div className="hero-art" aria-label="Ilustração abstrata em tons de azul e verde" role="img">
-            <div className="art-grid" />
-            <div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" />
-            <div className="art-core"><span>t.</span></div>
-            <div className="art-chip chip-one">IA <i /></div><div className="art-chip chip-two"><i /> DIGITAL</div>
-            <div className="art-cross cross-one">+</div><div className="art-cross cross-two">+</div>
-            <div className="art-caption"><span>IDEIAS EM MOVIMENTO</span><b>01 — 06</b></div>
-          </div>
-        </section>
-
-        <section className="topic-strip" aria-label="Explore por assunto">
-          <span className="topic-label">NA PAUTA</span>
-          {categories.map((item, index) => <button className={category === item.slug ? "topic-pill selected" : "topic-pill"} key={item.slug} onClick={() => navigateCategory(item.slug)}><span>0{index + 1}</span>{item.short}<b aria-hidden="true">↗</b></button>)}
-        </section>
-
-        <section id="ultimas" className="news-section" aria-labelledby="latest-title">
-          <div className="section-heading">
-            <div><div className="section-overline">O QUE ESTÁ ACONTECENDO</div><h2 id="latest-title">{category ? categories.find((item) => item.slug === category)?.name ?? "Notícias" : "Últimas notícias"}<span className="heading-dot">.</span></h2></div>
-            <span className="section-count">{query ? "BUSCA" : "ATUALIZADO AO LONGO DO DIA"} <i /></span>
-          </div>
-          {query && <p className="search-feedback">{filteredArticles.length ? `${filteredArticles.length} notícia(s) encontrada(s) para “${query}”.` : `Nenhum resultado para “${query}”.`}</p>}
-          {dataError ? <div className="empty-news"><div className="empty-icon" aria-hidden="true"><span>!</span></div><div className="empty-copy"><span className="empty-label">ERRO AO CARREGAR</span><h3>As notícias não puderam ser carregadas.</h3><p>Tente novamente em instantes.</p></div></div> : filteredArticles.length ? <div className="news-grid">{filteredArticles.slice(0, 12).map((article) => <article className="news-card" key={article.id}>
-            <Link href={`/noticia/${article.slug}`} className="news-card-image" aria-label={`Abrir: ${article.title}`}>
-              {article.image_url ? <Image src={article.image_url} alt="" width={640} height={360} sizes="(max-width: 700px) 100vw, 33vw" unoptimized /> : <span className="news-image-mark">AT</span>}
-            </Link>
-            <div className="news-card-body"><div className="news-card-meta"><span>{article.category}</span><time dateTime={article.published_at}>{dateLabel(article.published_at)} · {readingMinutes(article)} min</time></div>
-              <h3><Link href={`/noticia/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p>
-              <div className="news-card-source"><span>{article.source_name}</span><Link href={`/noticia/${article.slug}`}>Ler resumo <span aria-hidden="true">↗</span></Link></div>
-            </div>
-          </article>)}</div> : <div className="empty-news">
-            <div className="empty-icon" aria-hidden="true"><span>t.</span></div>
-            <div className="empty-copy"><span className="empty-label">{category ? "CATEGORIA SEM NOTÍCIAS" : "AGUARDANDO OS FEEDS"}</span><h3>{category ? "Ainda não há notícias nesta categoria." : "As notícias estão a caminho."}</h3><p>{dataError ? "" : "As matérias serão exibidas assim que os feeds das fontes forem sincronizados."}</p></div>
-            <span className="empty-index">01 / 01</span>
-          </div>}
-        </section>
-
-        <section className="below-grid">
-          <div className="popular-box"><div className="section-overline">LEITURAS EM DESTAQUE</div><h2>Mais populares<span className="heading-dot">.</span></h2>{popularArticles.length ? <ol className="popular-list">{popularArticles.slice(0, 4).map((article, index) => <li key={article.id}><span>{String(index + 1).padStart(2, "0")}</span><Link href={`/noticia/${article.slug}`}>{article.title}</Link><small>{article.views} leitura(s)</small></li>)}</ol> : <><p>As notícias mais lidas vão aparecer aqui.</p><div className="popular-empty"><span>01</span><span>Sem notícias publicadas</span><span>—</span></div></>}</div>
-          <aside className="newsletter-card"><span className="newsletter-spark" aria-hidden="true">✳</span><div className="section-overline">UM E-MAIL. BOAS IDEIAS.</div><h2>Tecnologia,<br /><em>sem ruído.</em></h2><p>Uma seleção de novidades e leituras para acompanhar o que importa.</p><button className="dark-button" onClick={() => setNewsletterOpen(true)}>Quero receber <span>↗</span></button><small>Demonstração: serviço de envio não conectado.</small></aside>
-        </section>
-      </main>
-
-      <footer className="site-footer">
-        <div className="wrap footer-main"><div><Link href="/" className="brand footer-brand"><span className="brand-mark">AT</span><span className="brand-name">anselmo<span> tech notícias</span></span></Link><p>Tecnologia, no seu ritmo.</p></div><div className="footer-links"><div><b>EXPLORE</b><a href="#ultimas">Últimas notícias</a><button onClick={() => setNewsletterOpen(true)}>Newsletter</button><Link href="/admin">Painel demonstrativo</Link></div><div><b>INSTITUCIONAL</b><a href="mailto:contato@anselmotechnoticias.example">Contato</a><a href="/privacidade">Privacidade</a></div></div></div>
-        <div className="wrap footer-bottom"><span>© 2026 ANSELMO TECH NOTÍCIAS</span><span>FEITO PARA ENTENDER O QUE VEM AÍ <i>✳</i></span></div>
-      </footer>
-
-      {newsletterOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeNewsletter(); }}>
-        <div className="newsletter-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description" tabIndex={-1} ref={dialogRef} onKeyDown={(event) => {
+      {newsletterOpen && <div className="p-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeNewsletter(); }}>
+        <div className="p-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description" tabIndex={-1} ref={dialogRef} onKeyDown={(event) => {
           if (event.key === "Escape") closeNewsletter();
           if (event.key === "Tab") {
             const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
@@ -199,19 +251,20 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
           }
         }}>
-          <button className="modal-close" aria-label="Fechar convite" onClick={closeNewsletter}>×</button>
-          <span className="modal-icon" aria-hidden="true">✳</span><div className="section-overline">A TECNOLOGIA CHEGA ATÉ VOCÊ</div>
-          <h2 id="modal-title">Boas ideias.<br /><em>Na sua caixa de entrada.</em></h2>
-          <p id="modal-description">Novidades e leituras sobre tecnologia, em uma seleção ocasional. Demonstração: o serviço ainda não está conectado e seu e-mail não será enviado nem armazenado.</p>
-          <form onSubmit={submitNewsletter} noValidate>
-            <label htmlFor="newsletter-email">Seu e-mail</label><input id="newsletter-email" type="email" autoComplete="email" placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            <label className="consent-line"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades da Anselmo Tech Notícias para este e-mail.</span></label>
-            <p className="modal-status" aria-live="polite">{message}</p>
-            <button className="dark-button modal-submit" type="submit">Quero receber <span>↗</span></button>
+          <button className="p-close" aria-label="Fechar" onClick={closeNewsletter}>×</button>
+          <h2 id="modal-title">Newsletter de tecnologia</h2>
+          <p id="modal-description">Com a sua autorização, guardamos o e-mail para a newsletter. O envio periódico será ligado mais adiante.</p>
+          <form onSubmit={(event) => void submitNewsletter(event)} noValidate>
+            <label className="p-honeypot" aria-hidden="true">Deixe em branco<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label>
+            <label htmlFor="newsletter-email">Seu e-mail</label>
+            <input id="newsletter-email" type="email" autoComplete="email" maxLength={254} placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <label className="p-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades da Anselmo Tech Notícias para este e-mail.</span></label>
+            <p className="p-status" data-tone={messageTone} role="status" aria-live="polite">{message}</p>
+            <button className="p-btn" type="submit" disabled={newsletterSaving}>{newsletterSaving ? "Salvando…" : "Cadastrar e-mail"}</button>
           </form>
-          <button className="later-button" onClick={closeNewsletter}>Agora não</button>
+          <button className="p-later" onClick={closeNewsletter}>Agora não</button>
         </div>
       </div>}
-    </>
+    </div>
   );
 }
