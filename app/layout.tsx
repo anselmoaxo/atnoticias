@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Schibsted_Grotesk, Source_Serif_4 } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 import "./editorial.css";
 import "./site.css";
@@ -23,7 +24,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Renderização dinâmica em todas as páginas: o Next.js só aplica o nonce da CSP (proxy.ts) em HTML gerado por requisição.
+  await connection();
   return (
     <html lang="pt-BR" className={`${grotesk.variable} ${serif.variable}`}>
       <body>{children}</body>

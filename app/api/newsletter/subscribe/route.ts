@@ -1,4 +1,5 @@
 import { normalizeNewsletterEmail, registerNewsletterEmail } from "@/lib/newsletter/service";
+import { clientAddressFrom } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -20,10 +21,8 @@ export async function POST(request: Request) {
   if (!email) return Response.json({ error: "Confira o endereço de e-mail e tente novamente." }, { status: 400, headers: noStore });
   if (data.consent !== true) return Response.json({ error: "Marque a autorização para receber as novidades." }, { status: 400, headers: noStore });
 
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientAddress = request.headers.get("x-real-ip")?.trim() || forwarded || "unknown";
   try {
-    const result = await registerNewsletterEmail(email, clientAddress);
+    const result = await registerNewsletterEmail(email, clientAddressFrom(request.headers));
     if (result === "rate-limited") {
       return Response.json({ error: "Muitas tentativas. Aguarde uma hora e tente novamente." }, { status: 429, headers: { ...noStore, "Retry-After": "3600" } });
     }

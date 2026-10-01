@@ -11,7 +11,9 @@
     "start": "next start",
     "db:migrate": "tsx scripts/migrate.ts",
     "news:import": "tsx scripts/import-news.ts",
-    "news:reclassify": "tsx scripts/reclassify-news.ts"
+    "news:reclassify": "tsx scripts/reclassify-news.ts",
+    "news:sanitize": "tsx scripts/sanitize-news.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@neondatabase/auth": "^0.5.0-beta",

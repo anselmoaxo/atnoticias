@@ -16,14 +16,19 @@ jobs:
   import:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      HAS_IMPORTER_SECRET: ${{ secrets.DATABASE_URL_IMPORTER != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Avisar se o importador ainda usa a credencial completa
+        if: env.HAS_IMPORTER_SECRET != 'true'
+        run: echo "::warning::Cadastre o secret DATABASE_URL_IMPORTER com o papel atn_importer (db/roles.sql). Usando DATABASE_URL por enquanto."
       - name: Importar feeds RSS no Neon
         run: npm run news:import
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_IMPORTER || secrets.DATABASE_URL }}

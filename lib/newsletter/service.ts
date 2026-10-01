@@ -1,6 +1,7 @@
-import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { sendConfirmationEmail } from "@/lib/newsletter/mail";
+import { rateLimitKey } from "@/lib/rate-limit";
 
 export function normalizeNewsletterEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -10,9 +11,7 @@ export function normalizeNewsletterEmail(value: unknown): string | null {
 }
 
 export async function registerNewsletterEmail(email: string, clientAddress: string): Promise<"saved" | "rate-limited"> {
-  const secret = process.env.NEWSLETTER_RATE_LIMIT_SECRET || process.env.CRON_SECRET || process.env.NEON_AUTH_COOKIE_SECRET || process.env.DATABASE_URL;
-  if (!secret || secret.length < 32) throw new Error("RateLimitSecretUnavailable");
-  const clientKey = createHmac("sha256", secret).update(`newsletter-signup:${clientAddress}`).digest("hex");
+  const clientKey = rateLimitKey("newsletter-signup", clientAddress);
   const sql = getDb();
 
   await sql.query("DELETE FROM newsletter_signup_limits WHERE updated_at < now() - interval '48 hours'");
@@ -29,23 +28,22 @@ export async function registerNewsletterEmail(email: string, clientAddress: stri
   if (Number((attempts[0] as { attempts: number } | undefined)?.attempts ?? 0) > 8) return "rate-limited";
 
   const token = randomBytes(32).toString("base64url");
+  // Só o pedido é registrado aqui. Status, consentimento e cancelamento de um endereço que já existe
+  // mudam apenas quando o dono do e-mail confirma o link (confirmNewsletterToken).
   const rows = await sql.query(
     `INSERT INTO newsletter_subscribers (id, email, normalized_email, status, consent_at, confirm_token_hash, confirm_sent_at)
      VALUES ($1, $2, $2, 'pending', now(), $3, now())
      ON CONFLICT (normalized_email) DO UPDATE SET
-       email = EXCLUDED.email,
-       status = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN 'subscribed' ELSE 'pending' END,
-       consent_at = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.consent_at ELSE now() END,
-       confirm_token_hash = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.confirm_token_hash ELSE EXCLUDED.confirm_token_hash END,
-       confirm_sent_at = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.confirm_sent_at ELSE now() END,
-       unsubscribed_at = NULL,
+       confirm_token_hash = EXCLUDED.confirm_token_hash,
+       confirm_sent_at = now(),
        updated_at = now()
-     WHERE newsletter_subscribers.status <> 'pending' OR newsletter_subscribers.confirm_sent_at IS NULL OR newsletter_subscribers.confirm_sent_at < now() - interval '2 minutes'
-     RETURNING status`,
+     WHERE newsletter_subscribers.status <> 'subscribed'
+       AND (newsletter_subscribers.confirm_sent_at IS NULL OR newsletter_subscribers.confirm_sent_at < now() - interval '2 minutes')
+     RETURNING id`,
     [randomUUID(), email, hashToken(token)],
   );
-  // Sem linha: já havia um pedido pendente há menos de 2 minutos. Já inscrito: não reenvia nada.
-  if ((rows[0] as { status: string } | undefined)?.status === "pending") await sendConfirmationEmail(email, token);
+  // Sem linha: já inscrito ou pedido enviado há menos de 2 minutos. Nada é reenviado.
+  if (rows.length) await sendConfirmationEmail(email, token);
   return "saved";
 }
 
@@ -56,8 +54,9 @@ export function hashToken(token: string) {
 export async function confirmNewsletterToken(token: string): Promise<"confirmed" | "invalid"> {
   if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) return "invalid";
   const rows = await getDb().query(
-    `UPDATE newsletter_subscribers SET status = 'subscribed', confirm_token_hash = NULL, updated_at = now()
-     WHERE confirm_token_hash = $1 AND status = 'pending' AND confirm_sent_at > now() - interval '48 hours'
+    `UPDATE newsletter_subscribers
+     SET status = 'subscribed', consent_at = now(), unsubscribed_at = NULL, confirm_token_hash = NULL, updated_at = now()
+     WHERE confirm_token_hash = $1 AND status IN ('pending', 'unsubscribed') AND confirm_sent_at > now() - interval '48 hours'
      RETURNING id`,
     [hashToken(token)],
   );

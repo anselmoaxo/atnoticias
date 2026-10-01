@@ -1,6 +1,7 @@
 import { requireAdminApi } from "@/lib/admin";
 import { categories } from "@/lib/content";
 import { getDb } from "@/lib/db";
+import { cleanText } from "@/lib/news/importer";
 
 export const runtime = "nodejs";
 const allowedStatus = new Set(["published", "archived"]);
@@ -14,10 +15,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   try { body = await request.json(); } catch { return Response.json({ error: "Envie dados válidos." }, { status: 400 }); }
   if (!body || typeof body !== "object") return Response.json({ error: "Envie dados válidos." }, { status: 400 });
   const data = body as Record<string, unknown>;
-  const title = typeof data.title === "string" ? data.title.trim() : "";
-  const summary = typeof data.summary === "string" ? data.summary.trim() : "";
+  const title = typeof data.title === "string" ? cleanText(data.title) : "";
+  const summary = typeof data.summary === "string" ? cleanText(data.summary) : "";
   const category = typeof data.category === "string" ? data.category : "";
-  const author = typeof data.author === "string" ? data.author.trim() : "";
+  const author = typeof data.author === "string" ? cleanText(data.author) : "";
   const imageUrl = typeof data.imageUrl === "string" ? data.imageUrl.trim() : "";
   const publishedAt = typeof data.publishedAt === "string" ? data.publishedAt : "";
   const status = typeof data.status === "string" ? data.status : "";
