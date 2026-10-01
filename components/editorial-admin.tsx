@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { signOutAdmin } from "@/app/admin/entrar/actions";
 import { categories, type NewsArticle } from "@/lib/content";
+import type { NewsletterSubscriber } from "@/lib/newsletter/repository";
 
 function localDateInput(value: string) {
   const date = new Date(value);
@@ -28,6 +29,11 @@ export function EditorialAdmin({ email }: { email: string }) {
   const [status, setStatus] = useState<"published" | "archived">("published");
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [subscriberLoading, setSubscriberLoading] = useState(true);
+  const [subscriberError, setSubscriberError] = useState("");
+  const [subscriberMessage, setSubscriberMessage] = useState("");
+  const [subscriberBusyId, setSubscriberBusyId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -43,6 +49,21 @@ export function EditorialAdmin({ email }: { email: string }) {
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
+
+  const reloadSubscribers = useCallback(async () => {
+    setSubscriberLoading(true);
+    setSubscriberError("");
+    try {
+      const response = await fetch("/api/admin/newsletter", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível carregar os inscritos.");
+      setSubscribers(data.subscribers as NewsletterSubscriber[]);
+    } catch (reason) {
+      setSubscriberError(reason instanceof Error ? reason.message : "Não foi possível carregar os inscritos.");
+    } finally { setSubscriberLoading(false); }
+  }, []);
+
+  useEffect(() => { void reloadSubscribers(); }, [reloadSubscribers]);
 
   function beginEdit(article: NewsArticle) {
     setEditingId(article.id); setTitle(article.title); setSummary(article.summary); setCategory(article.category);
@@ -92,6 +113,50 @@ export function EditorialAdmin({ email }: { email: string }) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível excluir."); }
   }
 
+  async function updateSubscriberStatus(subscriber: NewsletterSubscriber) {
+    const status = subscriber.status === "subscribed" ? "unsubscribed" : "subscribed";
+    setSubscriberBusyId(subscriber.id); setSubscriberError(""); setSubscriberMessage("");
+    try {
+      const response = await fetch(`/api/admin/newsletter/${subscriber.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar o inscrito.");
+      setSubscriberMessage(status === "unsubscribed" ? "Inscrição cancelada." : "Inscrição reativada.");
+      await reloadSubscribers();
+    } catch (reason) { setSubscriberError(reason instanceof Error ? reason.message : "Não foi possível atualizar o inscrito."); }
+    finally { setSubscriberBusyId(null); }
+  }
+
+  async function deleteSubscriber(subscriber: NewsletterSubscriber) {
+    if (!window.confirm(`Excluir o endereço ${subscriber.email} da lista?`)) return;
+    setSubscriberBusyId(subscriber.id); setSubscriberError(""); setSubscriberMessage("");
+    try {
+      const response = await fetch(`/api/admin/newsletter/${subscriber.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível excluir o inscrito.");
+      setSubscriberMessage("Endereço excluído da lista.");
+      await reloadSubscribers();
+    } catch (reason) { setSubscriberError(reason instanceof Error ? reason.message : "Não foi possível excluir o inscrito."); }
+    finally { setSubscriberBusyId(null); }
+  }
+
+  async function exportSubscribers() {
+    setSubscriberError(""); setSubscriberMessage("");
+    try {
+      const response = await fetch("/api/admin/newsletter/export", { cache: "no-store" });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error ?? "Não foi possível exportar os inscritos.");
+      }
+      const downloadUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = downloadUrl; link.download = "anselmo-tech-inscritos-newsletter.csv"; link.click();
+      URL.revokeObjectURL(downloadUrl);
+      setSubscriberMessage("Lista exportada.");
+    } catch (reason) { setSubscriberError(reason instanceof Error ? reason.message : "Não foi possível exportar os inscritos."); }
+  }
+
   const visible = articles.filter((article) => `${article.title} ${article.source_name} ${article.category}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")));
 
   return <main className="admin-page">
@@ -114,7 +179,16 @@ export function EditorialAdmin({ email }: { email: string }) {
           </form>}
         </article>)}</div> : <div className="admin-empty"><span className="empty-icon"><span>AT</span></span><h3>{search ? "Nenhuma notícia encontrada" : "Ainda não há notícias importadas"}</h3><p>{search ? "Altere a busca e tente novamente." : "A importação automática será executada pelo agendador. Você também pode buscar agora."}</p></div>}
       </section>
-      <section className="admin-card newsletter-later"><div><div className="section-overline">ETAPA FINAL</div><h2>Newsletter por e-mail</h2><p>O envio diário às 8h será ligado depois da importação e do painel editorial. Nenhum endereço está sendo coletado ou enviado agora.</p></div></section>
+      <section className="admin-card newsletter-management">
+        <div className="admin-card-heading"><div><div className="section-overline">CONSENTIMENTO E LISTA DE E-MAILS</div><h2>Newsletter <span className="list-count">{subscribers.length}</span></h2></div><button className="text-button newsletter-export" type="button" onClick={() => void exportSubscribers()}>Exportar CSV</button></div>
+        <p className="admin-footnote">Os endereços autorizados ficam salvos no Neon. O envio de campanhas ainda não está conectado.</p>
+        <p className="newsletter-status-message" role="status" aria-live="polite">{subscriberError || subscriberMessage}</p>
+        {subscriberLoading ? <div className="newsletter-empty">Carregando inscritos…</div> : subscriberError && !subscribers.length ? <div className="newsletter-empty"><p>{subscriberError}</p><button className="text-button" type="button" onClick={() => void reloadSubscribers()}>Tentar novamente</button></div> : subscribers.length ? <div className="newsletter-table">{subscribers.map((subscriber) => <article className="newsletter-subscriber" key={subscriber.id}>
+          <div><b>{subscriber.email}</b><small>Consentiu em {new Date(subscriber.consent_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</small></div>
+          <span className={subscriber.status === "subscribed" ? "newsletter-status" : "newsletter-status is-unsubscribed"}>{subscriber.status === "subscribed" ? "Inscrito" : "Cancelado"}</span>
+          <div className="row-actions"><button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void updateSubscriberStatus(subscriber)}>{subscriber.status === "subscribed" ? "Cancelar" : "Reativar"}</button><button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void deleteSubscriber(subscriber)}>Excluir</button></div>
+        </article>)}</div> : <div className="newsletter-empty">Ainda não há e-mails inscritos.</div>}
+      </section>
       <p className="admin-footnote">O portal publica apenas títulos e descrições fornecidos pelos feeds, com link para a fonte original.</p>
     </div>
   </main>;

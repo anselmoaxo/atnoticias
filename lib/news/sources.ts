@@ -6,7 +6,7 @@ export type NewsSource = {
 
 // Lista editorial inicial: veículos reconhecidos; importar somente campos publicados no RSS.
 export const newsSources: NewsSource[] = [
-  { name: "Tecnoblog", feedUrl: "https://tecnoblog.net/feed/", category: "Computadores" },
-  { name: "Canaltech", feedUrl: "https://canaltech.com.br/rss/", category: "Computadores" },
-  { name: "The Verge", feedUrl: "https://www.theverge.com/rss/index.xml", category: "Computadores" },
+  { name: "Tecnoblog", feedUrl: "https://tecnoblog.net/feed/", category: "Tecnologia" },
+  { name: "Canaltech", feedUrl: "https://canaltech.com.br/rss/", category: "Tecnologia" },
+  { name: "The Verge", feedUrl: "https://www.theverge.com/rss/index.xml", category: "Tecnologia" },
 ];

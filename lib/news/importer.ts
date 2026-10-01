@@ -6,14 +6,14 @@ import { newsSources } from "@/lib/news/sources";
 
 const parser = new Parser({ timeout: 12_000, headers: { "User-Agent": "AnselmoTechNoticias/1.0 (+RSS reader)" } });
 const categoryTerms: Array<[string, RegExp]> = [
-  ["Inteligência artificial", /\b(ia|intelig[eê]ncia artificial|chatgpt|openai|gemini|copilot|claude|llm|modelo de linguagem)\b/i],
-  ["Segurança digital", /\b(seguran[cç]a|privacidade|vazamento|ransomware|ciberataque|golpe|malware|hacker|phishing)\b/i],
-  ["Games", /\b(game|games|jogo|jogos|playstation|xbox|nintendo|steam|gamer)\b/i],
-  ["Celulares", /\b(celular|smartphone|iphone|android|galaxy|motorola|xiaomi)\b/i],
-  ["Startups", /\b(startup|startups|venture capital|rodada de investimento|fintech|unic[oó]rnio)\b/i],
-  ["Aplicativos", /\b(aplicativo|aplicativos|app|apps|whatsapp|instagram|tiktok)\b/i],
-  ["Ciência e inovação", /\b(ci[eê]ncia|pesquisa|inova[cç][aã]o|rob[oô]|espa[cç]o|energia|descoberta)\b/i],
-  ["Computadores", /\b(computador|notebook|pc|processador|chip|windows|mac|linux|nvidia|amd)\b/i],
+  ["Inteligência artificial", /\b(ia|ai|llm|chatgpt|openai|gemini|copilot|claude)\b|intelig[eê]ncia artificial|artificial intelligence|machine learning|modelo(s)? de linguagem/i],
+  ["Segurança digital", /\b(seguran[cç]a digital|cybersecurity|ransomware|ciberataque|malware|hacker|phishing)\b|privacidade|data breach|vazamento de dados|vulnerabilidade/i],
+  ["Games", /\b(game(s)?|jogo(s)?|playstation|xbox|nintendo|steam|gamer|gaming)\b/i],
+  ["Celulares", /\b(celular|smartphone|iphone|android|ios|galaxy|motorola|xiaomi|pixel phone)\b/i],
+  ["Startups", /\b(startup(s)?|fintech|unicorn|unic[oó]rnio)\b|venture capital|rodada de investimento|funding round/i],
+  ["Aplicativos", /\b(app(s)?|aplicativo(s)?|whatsapp|instagram|tiktok)\b|mobile application/i],
+  ["Ciência e inovação", /\b(ci[eê]ncia|science|research|inova[cç][aã]o|innovation|rob[oô]|robot|espa[cç]o|space|quantum|descoberta)\b/i],
+  ["Computadores", /\b(computador(es)?|notebook(s)?|laptop(s)?|pc|processador(es)?|chip(s)?|windows|mac(os)?|linux|nvidia|amd|gpu|cpu|hardware)\b/i],
 ];
 
 function cleanText(value: string | undefined): string {
@@ -39,9 +39,17 @@ function normalizeSourceUrl(raw: string): string | null {
   } catch { return null; }
 }
 
-function categoryFor(text: string, fallback: string): string {
+export function categoryFor(text: string, fallback = "Tecnologia", feedLabels: string[] = []): string {
+  const labels = feedLabels.join(" ");
+  for (const [name, pattern] of categoryTerms) if (pattern.test(labels)) return name;
   for (const [name, pattern] of categoryTerms) if (pattern.test(text)) return name;
-  return categories.some((category) => category.name === fallback) ? fallback : "Computadores";
+  return categories.some((category) => category.name === fallback) ? fallback : "Tecnologia";
+}
+
+function itemCategories(item: Record<string, unknown>): string[] {
+  const raw = item.categories ?? item.category;
+  if (Array.isArray(raw)) return raw.filter((value): value is string => typeof value === "string").slice(0, 12);
+  return typeof raw === "string" ? [raw] : [];
 }
 
 function slugFor(title: string, url: string): string {
@@ -88,7 +96,7 @@ export async function importNews() {
         if (title.length < 5 || !description || !sourceUrl || Number.isNaN(publishedAt.getTime())) continue;
         if (publishedAt.getTime() < oldestAllowed || publishedAt.getTime() > newestAllowed) continue;
 
-        const category = categoryFor(`${title} ${description}`, source.category);
+        const category = categoryFor(`${title} ${description}`, source.category, itemCategories(item));
         const imageUrl = itemImage(item);
         const result = await sql.query(
           `INSERT INTO news_articles

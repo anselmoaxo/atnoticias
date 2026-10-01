@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS news_articles (
   summary text NOT NULL CHECK (char_length(btrim(summary)) BETWEEN 1 AND 900),
   category text NOT NULL CHECK (category IN (
     'Inteligência artificial', 'Aplicativos', 'Segurança digital', 'Celulares',
-    'Computadores', 'Startups', 'Ciência e inovação', 'Games'
+    'Computadores', 'Startups', 'Ciência e inovação', 'Games', 'Tecnologia'
   )),
   author text,
   image_url text,

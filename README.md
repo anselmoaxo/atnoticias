@@ -17,11 +17,11 @@ Abra http://localhost:3000. Para gerar e executar a versão de produção, use `
 
 - Página inicial responsiva, categorias, busca, páginas de leitura com links para as fontes e metadados em português.
 - Importação RSS sem geração por IA: o portal salva os títulos e as descrições fornecidos pelos feeds, com fonte e data originais, e evita duplicatas.
-- Coletor inicial: Tecnoblog, Tecmundo e The Verge. O último publica em inglês. Notícias com mais de sete dias ou sem descrição/data são ignoradas.
-- Persistência no Neon por `@neondatabase/serverless`, migração SQL em `db/migrations/001_news_articles.sql` e comandos `npm run db:migrate` e `npm run news:import`.
+- Coletor inicial: Tecnoblog, Canaltech e The Verge. O último publica em inglês. Notícias com mais de sete dias ou sem descrição/data são ignoradas. A categoria vem dos marcadores do feed e de termos do título/descrição; quando não há sinal suficiente, usa a categoria geral “Tecnologia”.
+- Persistência no Neon por `@neondatabase/serverless`; as migrações SQL em `db/migrations/` são aplicadas por `npm run db:migrate`. Use `npm run news:import` para importar feeds e `npm run news:reclassify` para ajustar matérias importadas que ainda não foram editadas no painel.
 - `/admin` exige sessão Neon Auth e corresponde ao único `ADMIN_EMAIL`; permite editar, arquivar e excluir notícias importadas. Não há cadastro público.
 - GitHub Actions agenda a coleta a cada hora. É necessário cadastrar `DATABASE_URL` como secret do repositório GitHub para habilitar o job.
-- Newsletter e envio de e-mails ainda não foram conectados; nenhum endereço é coletado nesta etapa.
+- A inscrição na newsletter salva no Neon apenas e-mails informados com consentimento explícito. O envio de campanhas continua desligado; o painel permite consultar, cancelar, reativar, excluir e exportar a lista.
 
 ## Configuração local
 
@@ -39,6 +39,6 @@ npm run dev
 
 O primeiro e-mail/senha precisa existir no Neon Auth. A rota do portal não permite cadastro público. O importador usa os campos disponíveis no RSS e não copia o corpo integral da matéria.
 
-## Newsletter (etapa posterior)
+## Newsletter
 
-`RESEND_API_KEY` será usada somente quando o envio diário e o gerenciamento de cancelamento forem implementados. Ela não é necessária para importar notícias e permanece sem uso nesta etapa. `NEXT_PUBLIC_SITE_URL` deve receber o domínio de produção quando definido.
+O formulário valida e grava o e-mail autorizado no Neon (`newsletter_subscribers`). Um limite de tentativas por endereço de rede, armazenado como hash temporário, ajuda a reduzir envios abusivos. O envio diário e os links de cancelamento por e-mail ainda não estão ativos; nenhum e-mail é enviado pela integração atual. `RESEND_API_KEY` será configurada quando o serviço de envio for ligado. `NEXT_PUBLIC_SITE_URL` deve receber o domínio de produção quando definido.

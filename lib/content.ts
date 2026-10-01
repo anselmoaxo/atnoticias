@@ -7,6 +7,7 @@ export const categories = [
   { name: "Startups", slug: "startups", short: "Startups" },
   { name: "Ciência e inovação", slug: "ciencia-inovacao", short: "Ciência" },
   { name: "Games", slug: "games", short: "Games" },
+  { name: "Tecnologia", slug: "tecnologia", short: "Tecnologia" },
 ];
 
 export type NewsArticle = {
