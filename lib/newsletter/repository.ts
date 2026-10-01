@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 
-export type NewsletterStatus = "subscribed" | "unsubscribed";
+export type NewsletterStatus = "pending" | "subscribed" | "unsubscribed";
 export type NewsletterSubscriber = {
   id: string;
   email: string;

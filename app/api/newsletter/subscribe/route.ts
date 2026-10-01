@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
   const data = body as Record<string, unknown>;
   if (typeof data.website === "string" && data.website.trim()) {
-    return Response.json({ message: "Inscrição salva. O envio de e-mails será ativado mais adiante." }, { headers: noStore });
+    return Response.json({ message: "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." }, { headers: noStore });
   }
   const email = normalizeNewsletterEmail(data.email);
   if (!email) return Response.json({ error: "Confira o endereço de e-mail e tente novamente." }, { status: 400, headers: noStore });
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (result === "rate-limited") {
       return Response.json({ error: "Muitas tentativas. Aguarde uma hora e tente novamente." }, { status: 429, headers: { ...noStore, "Retry-After": "3600" } });
     }
-    return Response.json({ message: "Inscrição salva com sucesso. O envio de e-mails será ativado mais adiante." }, { headers: noStore });
+    return Response.json({ message: "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." }, { headers: noStore });
   } catch {
     return Response.json({ error: "Não foi possível salvar sua inscrição agora. Tente novamente mais tarde." }, { status: 503, headers: noStore });
   }

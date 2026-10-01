@@ -1,5 +1,6 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { getDb } from "@/lib/db";
+import { sendConfirmationEmail } from "@/lib/newsletter/mail";
 
 export function normalizeNewsletterEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -27,16 +28,38 @@ export async function registerNewsletterEmail(email: string, clientAddress: stri
   );
   if (Number((attempts[0] as { attempts: number } | undefined)?.attempts ?? 0) > 8) return "rate-limited";
 
-  await sql.query(
-    `INSERT INTO newsletter_subscribers (id, email, normalized_email, status, consent_at)
-     VALUES ($1, $2, $2, 'subscribed', now())
+  const token = randomBytes(32).toString("base64url");
+  const rows = await sql.query(
+    `INSERT INTO newsletter_subscribers (id, email, normalized_email, status, consent_at, confirm_token_hash, confirm_sent_at)
+     VALUES ($1, $2, $2, 'pending', now(), $3, now())
      ON CONFLICT (normalized_email) DO UPDATE SET
        email = EXCLUDED.email,
-       status = 'subscribed',
-       consent_at = now(),
-       updated_at = now(),
-       unsubscribed_at = NULL`,
-    [randomUUID(), email],
+       status = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN 'subscribed' ELSE 'pending' END,
+       consent_at = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.consent_at ELSE now() END,
+       confirm_token_hash = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.confirm_token_hash ELSE EXCLUDED.confirm_token_hash END,
+       confirm_sent_at = CASE WHEN newsletter_subscribers.status = 'subscribed' THEN newsletter_subscribers.confirm_sent_at ELSE now() END,
+       unsubscribed_at = NULL,
+       updated_at = now()
+     WHERE newsletter_subscribers.status <> 'pending' OR newsletter_subscribers.confirm_sent_at IS NULL OR newsletter_subscribers.confirm_sent_at < now() - interval '2 minutes'
+     RETURNING status`,
+    [randomUUID(), email, hashToken(token)],
   );
+  // Sem linha: já havia um pedido pendente há menos de 2 minutos. Já inscrito: não reenvia nada.
+  if ((rows[0] as { status: string } | undefined)?.status === "pending") await sendConfirmationEmail(email, token);
   return "saved";
+}
+
+export function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export async function confirmNewsletterToken(token: string): Promise<"confirmed" | "invalid"> {
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) return "invalid";
+  const rows = await getDb().query(
+    `UPDATE newsletter_subscribers SET status = 'subscribed', confirm_token_hash = NULL, updated_at = now()
+     WHERE confirm_token_hash = $1 AND status = 'pending' AND confirm_sent_at > now() - interval '48 hours'
+     RETURNING id`,
+    [hashToken(token)],
+  );
+  return rows.length ? "confirmed" : "invalid";
 }

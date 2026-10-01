@@ -17,7 +17,7 @@ export async function GET() {
       ["E-mail", "Status", "Inscrito em", "Consentimento em", "Cancelado em"].map(csvCell).join(";"),
       ...subscribers.map((subscriber) => [
         subscriber.email,
-        subscriber.status === "subscribed" ? "Inscrito" : "Cancelado",
+        ({ subscribed: "Inscrito", pending: "Aguardando confirmação", unsubscribed: "Cancelado" })[subscriber.status],
         subscriber.created_at,
         subscriber.consent_at,
         subscriber.unsubscribed_at ?? "",

@@ -111,7 +111,7 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
       setMessageTone("success");
-      setMessage(data.message ?? "Inscrição salva com sucesso. O envio de e-mails será ativado mais adiante.");
+      setMessage(data.message ?? "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição.");
       setEmail("");
       setConsent(false);
     } catch (reason) {
@@ -222,7 +222,7 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
             )}
             <section className="p-news" aria-labelledby="news-title">
               <h2 id="news-title">Newsletter</h2>
-              <p>Cadastre seu e-mail para receber as principais notícias de tecnologia assim que o envio começar.</p>
+              <p>Cadastre seu e-mail e confirme pelo link que enviaremos para receber as principais notícias de tecnologia.</p>
               <button className="p-btn" onClick={() => setNewsletterOpen(true)}>Cadastrar e-mail</button>
             </section>
           </div>
@@ -253,14 +253,14 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
         }}>
           <button className="p-close" aria-label="Fechar" onClick={closeNewsletter}>×</button>
           <h2 id="modal-title">Newsletter de tecnologia</h2>
-          <p id="modal-description">Com a sua autorização, guardamos o e-mail para a newsletter. O envio periódico será ligado mais adiante.</p>
+          <p id="modal-description">Enviaremos uma mensagem para confirmar o seu e-mail. A inscrição só vale depois que você clicar no link.</p>
           <form onSubmit={(event) => void submitNewsletter(event)} noValidate>
             <label className="p-honeypot" aria-hidden="true">Deixe em branco<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label>
             <label htmlFor="newsletter-email">Seu e-mail</label>
             <input id="newsletter-email" type="email" autoComplete="email" maxLength={254} placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
             <label className="p-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades da Anselmo Tech Notícias para este e-mail.</span></label>
             <p className="p-status" data-tone={messageTone} role="status" aria-live="polite">{message}</p>
-            <button className="p-btn" type="submit" disabled={newsletterSaving}>{newsletterSaving ? "Salvando…" : "Cadastrar e-mail"}</button>
+            <button className="p-btn" type="submit" disabled={newsletterSaving}>{newsletterSaving ? "Enviando…" : "Cadastrar e-mail"}</button>
           </form>
           <button className="p-later" onClick={closeNewsletter}>Agora não</button>
         </div>

@@ -181,12 +181,12 @@ export function EditorialAdmin({ email }: { email: string }) {
       </section>
       <section className="admin-card newsletter-management">
         <div className="admin-card-heading"><div><div className="section-overline">CONSENTIMENTO E LISTA DE E-MAILS</div><h2>Newsletter <span className="list-count">{subscribers.length}</span></h2></div><button className="text-button newsletter-export" type="button" onClick={() => void exportSubscribers()}>Exportar CSV</button></div>
-        <p className="admin-footnote">Os endereços autorizados ficam salvos no Neon. O envio de campanhas ainda não está conectado.</p>
+        <p className="admin-footnote">Os endereços autorizados ficam salvos no Neon. Novos cadastros só ficam ativos depois que a pessoa confirma pelo e-mail. O envio de campanhas ainda não está conectado.</p>
         <p className="newsletter-status-message" role="status" aria-live="polite">{subscriberError || subscriberMessage}</p>
         {subscriberLoading ? <div className="newsletter-empty">Carregando inscritos…</div> : subscriberError && !subscribers.length ? <div className="newsletter-empty"><p>{subscriberError}</p><button className="text-button" type="button" onClick={() => void reloadSubscribers()}>Tentar novamente</button></div> : subscribers.length ? <div className="newsletter-table">{subscribers.map((subscriber) => <article className="newsletter-subscriber" key={subscriber.id}>
           <div><b>{subscriber.email}</b><small>Consentiu em {new Date(subscriber.consent_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</small></div>
-          <span className={subscriber.status === "subscribed" ? "newsletter-status" : "newsletter-status is-unsubscribed"}>{subscriber.status === "subscribed" ? "Inscrito" : "Cancelado"}</span>
-          <div className="row-actions"><button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void updateSubscriberStatus(subscriber)}>{subscriber.status === "subscribed" ? "Cancelar" : "Reativar"}</button><button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void deleteSubscriber(subscriber)}>Excluir</button></div>
+          <span className={subscriber.status === "unsubscribed" ? "newsletter-status is-unsubscribed" : "newsletter-status"}>{({ subscribed: "Inscrito", pending: "Aguardando confirmação", unsubscribed: "Cancelado" })[subscriber.status]}</span>
+          <div className="row-actions">{subscriber.status !== "pending" && <button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void updateSubscriberStatus(subscriber)}>{subscriber.status === "subscribed" ? "Cancelar" : "Reativar"}</button>}<button type="button" disabled={subscriberBusyId === subscriber.id} onClick={() => void deleteSubscriber(subscriber)}>Excluir</button></div>
         </article>)}</div> : <div className="newsletter-empty">Ainda não há e-mails inscritos.</div>}
       </section>
       <p className="admin-footnote">O portal publica apenas títulos e descrições fornecidos pelos feeds, com link para a fonte original.</p>
