@@ -24,15 +24,3 @@ export type NewsArticle = {
   views: number;
   status: "published" | "archived";
 };
-
-export type Draft = {
-  id: string;
-  title: string;
-  summary: string;
-  content: string;
-  category: string;
-  author: string;
-  date: string;
-  image: string;
-  status: "Rascunho" | "Publicada" | "Arquivada";
-};

@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/html";
+
 const subject = "Confirme sua inscrição na newsletter da Anselmo Tech Notícias";
 
 export function siteUrl() {
@@ -14,7 +16,7 @@ export async function sendConfirmationEmail(to: string, token: string) {
   const text = `Recebemos um pedido para receber a newsletter da Anselmo Tech Notícias neste e-mail.\n\nPara confirmar, abra o link (válido por 48 horas):\n${link}\n\nSe você não fez esse pedido, ignore esta mensagem. Nada será enviado.`;
   const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#12141a;max-width:520px">
 <p>Recebemos um pedido para receber a newsletter da Anselmo Tech Notícias neste e-mail.</p>
-<p><a href="${link}" style="display:inline-block;background:#12141a;color:#fff;padding:12px 18px;border-radius:2px;text-decoration:none;font-weight:600">Confirmar inscrição</a></p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#12141a;color:#fff;padding:12px 18px;border-radius:2px;text-decoration:none;font-weight:600">Confirmar inscrição</a></p>
 <p style="color:#5e6674;font-size:14px">O link vale por 48 horas. Se você não fez esse pedido, ignore esta mensagem. Nada será enviado.</p>
 </div>`;
 

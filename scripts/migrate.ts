@@ -6,8 +6,9 @@ import { resolve } from "node:path";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL não está configurada.");
+  // Migrações exigem o papel dono do banco; a aplicação e o importador usam papéis sem DDL (db/roles.sql).
+  const connectionString = process.env.DATABASE_MIGRATION_URL || process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_MIGRATION_URL ou DATABASE_URL não está configurada.");
   const sql = neon(connectionString);
   const directory = resolve(process.cwd(), "db/migrations");
   const files = (await readdir(directory)).filter((file) => /^\d+_[a-z0-9_-]+\.sql$/i.test(file)).sort();

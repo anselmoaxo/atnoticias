@@ -1,11 +1,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { importNews } from "@/lib/news/importer";
+import { readSecret } from "@/lib/secrets";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 function isAuthorized(request: Request) {
-  const secret = process.env.CRON_SECRET;
+  // Segredo com menos de 32 caracteres conta como não configurado: a rota fica fechada.
+  const secret = readSecret("CRON_SECRET");
   const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!secret || !supplied) return false;
   const expectedBuffer = Buffer.from(secret);

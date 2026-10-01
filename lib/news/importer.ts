@@ -16,14 +16,18 @@ const categoryTerms: Array<[string, RegExp]> = [
   ["Computadores", /\b(computador(es)?|notebook(s)?|laptop(s)?|pc|processador(es)?|chip(s)?|windows|mac(os)?|linux|nvidia|amd|gpu|cpu|hardware)\b/i],
 ];
 
-function cleanText(value: string | undefined): string {
+// Decodifica as entidades antes de remover as tags (assim "&lt;script&gt;" também é removido) e descarta
+// qualquer "<" ou ">" que sobrar: título e resumo são texto puro e nunca podem formar HTML adiante.
+export function cleanText(value: string | undefined): string {
   return (value ?? "")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/&amp;/gi, "&")
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/[<>]/g, " ")
     .replace(/\s+/g, " ").trim();
 }
 
@@ -64,7 +68,7 @@ function itemImage(item: Record<string, unknown>): string | null {
   const media = item["media:content"] as { $?: { url?: string } } | undefined;
   const candidate = enclosure?.type?.startsWith("image/") ? enclosure.url : media?.$?.url;
   if (!candidate) return null;
-  try { return new URL(candidate).protocol.startsWith("http") ? new URL(candidate).toString() : null; }
+  try { const url = new URL(candidate); return url.protocol === "https:" ? url.toString() : null; }
   catch { return null; }
 }
 
