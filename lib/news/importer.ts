@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
 import { categories } from "@/lib/content";
+import { stripPromotions } from "@/lib/news/promotions";
 import { newsSources } from "@/lib/news/sources";
 
 const parser = new Parser({ timeout: 12_000, headers: { "User-Agent": "AnselmoTechNoticias/1.0 (+RSS reader)" } });
@@ -19,7 +20,7 @@ const categoryTerms: Array<[string, RegExp]> = [
 // Decodifica as entidades antes de remover as tags (assim "&lt;script&gt;" também é removido) e descarta
 // qualquer "<" ou ">" que sobrar: título e resumo são texto puro e nunca podem formar HTML adiante.
 export function cleanText(value: string | undefined): string {
-  return (value ?? "")
+  return stripPromotions((value ?? "")
     .replace(/&nbsp;|&#160;/gi, " ")
     .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
@@ -28,7 +29,7 @@ export function cleanText(value: string | undefined): string {
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/[<>]/g, " ")
-    .replace(/\s+/g, " ").trim();
+    .replace(/\s+/g, " ").trim());
 }
 
 function normalizeSourceUrl(raw: string): string | null {
