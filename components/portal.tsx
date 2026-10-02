@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { categories, type NewsArticle } from "@/lib/content";
 
 const dismissKey = "anselmo-tech-noticias-newsletter-dismissed-until";
+const subscribedKey = "anselmo-tech-noticias-newsletter-subscribed";
 const timeZone = "America/Sao_Paulo";
 
 function dayKey(iso: string) {
@@ -44,7 +45,7 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
 
   function wasDismissed() {
     try {
-      return Number(window.localStorage.getItem(dismissKey) || 0) > Date.now();
+      return window.localStorage.getItem(subscribedKey) === "1" || Number(window.localStorage.getItem(dismissKey) || 0) > Date.now();
     } catch {
       return false;
     }
@@ -52,7 +53,7 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
 
   useEffect(() => {
     if (wasDismissed()) return;
-    const timer = window.setTimeout(() => setNewsletterOpen(true), 6500);
+    const timer = window.setTimeout(() => setNewsletterOpen(true), 800);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -111,6 +112,9 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
       setMessageTone("success");
+      try {
+        window.localStorage.setItem(subscribedKey, "1");
+      } catch { /* Sem armazenamento local, o convite volta a aparecer na próxima visita. */ }
       setMessage(data.message ?? "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição.");
       setEmail("");
       setConsent(false);

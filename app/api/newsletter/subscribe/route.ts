@@ -23,13 +23,20 @@ export async function POST(request: Request) {
 
   try {
     const result = await registerNewsletterEmail(email, clientAddressFrom(request.headers));
-    // Só o motivo vai para o log, nunca o endereço. A resposta é a mesma em todos os casos,
-    // para não revelar quem já está inscrito.
+    // Só o motivo vai para o log, nunca o endereço.
     console.info(`Newsletter: inscrição ${result}`);
     if (result === "rate-limited") {
       return Response.json({ error: "Muitas tentativas. Aguarde uma hora e tente novamente." }, { status: 429, headers: { ...noStore, "Retry-After": "3600" } });
     }
-    return Response.json({ message: "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." }, { headers: noStore });
+    // Avisar quem já está inscrito revela que o endereço está na lista; aceito porque a lista
+    // é só da newsletter e o limite de 8 tentativas por hora por IP freia varreduras.
+    if (result === "already-subscribed") {
+      return Response.json({ status: result, message: "Este e-mail já está inscrito na newsletter. Você não precisa fazer mais nada." }, { headers: noStore });
+    }
+    if (result === "recently-sent") {
+      return Response.json({ status: result, message: "Já enviamos o link de confirmação para este e-mail há poucos minutos. Confira a caixa de entrada e o spam." }, { headers: noStore });
+    }
+    return Response.json({ status: result, message: "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." }, { headers: noStore });
   } catch (error) {
     console.error("Newsletter: falha na inscrição:", error instanceof Error ? error.message : "erro desconhecido");
     return Response.json({ error: "Não foi possível salvar sua inscrição agora. Tente novamente mais tarde." }, { status: 503, headers: noStore });
