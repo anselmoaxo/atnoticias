@@ -18,3 +18,9 @@ GRANT SELECT, INSERT, UPDATE ON news_import_runs TO atn_app;
 GRANT SELECT, INSERT ON news_articles TO atn_importer;
 GRANT SELECT, INSERT, UPDATE ON news_import_runs TO atn_importer;
 REVOKE ALL ON newsletter_subscribers, newsletter_signup_limits, rate_limits FROM atn_importer;
+
+-- n8n (envio diário da newsletter): só lê notícias publicadas e os inscritos confirmados.
+-- Crie o papel atn_newsletter no painel do Neon antes de rodar este trecho.
+GRANT USAGE ON SCHEMA public TO atn_newsletter;
+GRANT SELECT ON news_articles TO atn_newsletter;
+GRANT SELECT (id, email, status, unsubscribe_token) ON newsletter_subscribers TO atn_newsletter;

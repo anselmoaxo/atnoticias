@@ -68,3 +68,16 @@ export async function confirmNewsletterToken(token: string): Promise<"confirmed"
   );
   return rows.length ? "confirmed" : "invalid";
 }
+
+/** Cancela pelo token fixo de cada inscrito, que vai no rodapé e no cabeçalho List-Unsubscribe da newsletter. */
+export async function unsubscribeNewsletterToken(token: string): Promise<"unsubscribed" | "invalid"> {
+  if (!/^[a-f0-9]{64}$/.test(token)) return "invalid";
+  const rows = await getDb().query(
+    `UPDATE newsletter_subscribers
+     SET status = 'unsubscribed', unsubscribed_at = COALESCE(unsubscribed_at, now()), confirm_token_hash = NULL, updated_at = now()
+     WHERE unsubscribe_token = $1
+     RETURNING id`,
+    [token],
+  );
+  return rows.length ? "unsubscribed" : "invalid";
+}
