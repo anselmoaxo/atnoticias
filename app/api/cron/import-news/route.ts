@@ -18,7 +18,7 @@ function isAuthorized(request: Request) {
 export async function GET(request: Request) {
   if (!isAuthorized(request)) return Response.json({ error: "Não autorizado." }, { status: 401 });
   try {
-    return Response.json(await importNews(), { headers: { "Cache-Control": "no-store" } });
+    return Response.json(await importNews({ trigger: "cron" }), { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "Falha ao importar os feeds. Consulte os logs do servidor." }, { status: 503 });
   }

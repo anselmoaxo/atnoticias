@@ -95,8 +95,7 @@ export function EditorialAdmin({ email }: { email: string }) {
       const response = await fetch("/api/admin/import", { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "A importação falhou.");
-      const failed = data.errors?.length ?? 0;
-      setNotice(`${data.articlesAdded} notícia(s) nova(s) importada(s); ${data.feedsChecked} feeds consultados${failed ? `, ${failed} com erro` : ""}.`);
+      setNotice(data.message ?? `${data.articlesAdded} notícia(s) nova(s) importada(s); ${data.feedsChecked} feeds consultados.`);
       await reload();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "A importação falhou."); }
     finally { setImporting(false); }
@@ -162,10 +161,10 @@ export function EditorialAdmin({ email }: { email: string }) {
   return <main className="admin-page">
     <header className="admin-top"><Link href="/" className="brand"><span className="brand-mark">AT</span><span className="brand-name">anselmo<span> tech notícias</span></span></Link><div className="admin-user"><span>{email}</span><form action={signOutAdmin}><button className="back-link" type="submit">Sair</button></form></div></header>
     <div className="admin-wrap">
-      <div className="admin-title-row"><div><div className="section-overline">ÁREA DE GESTÃO</div><h1>Painel editorial<span className="heading-dot">.</span></h1><p>Notícias importadas dos feeds e publicadas automaticamente.</p></div><span className="admin-live-badge"><i /> CONECTADO AO NEON</span></div>
+      <div className="admin-title-row"><div><div className="section-overline">ÁREA DE GESTÃO</div><h1>Painel editorial<span className="heading-dot">.</span></h1><p>Notícias importadas dos feeds e publicadas automaticamente.</p></div><div className="admin-title-actions"><Link className="dark-button" href="/admin/coleta">Fontes e coleta<span aria-hidden="true">→</span></Link><span className="admin-live-badge"><i /> CONECTADO AO NEON</span></div></div>
       <div className="admin-toolbar"><label className="admin-search-label" htmlFor="admin-search">Buscar no acervo</label><input id="admin-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Título, fonte ou categoria" /><button className="dark-button" type="button" onClick={() => void runImport()} disabled={importing}>{importing ? "Consultando feeds…" : "Buscar notícias agora"}<span aria-hidden="true">↻</span></button></div>
       <p className="admin-status" aria-live="polite">{error || notice}</p>
-      <section className="admin-card editorial-list"><div className="admin-card-heading"><div><div className="section-overline">FONTES CONFIÁVEIS · ATUALIZAÇÃO A CADA HORA</div><h2>Acervo de notícias <span className="list-count">{articles.length}</span></h2></div></div>
+      <section className="admin-card editorial-list"><div className="admin-card-heading"><div><div className="section-overline">FONTES CONFIÁVEIS · COLETA AUTOMÁTICA</div><h2>Acervo de notícias <span className="list-count">{articles.length}</span></h2></div></div>
         {loading ? <div className="admin-empty"><h3>Carregando notícias…</h3><p>Consultando o acervo no Neon.</p></div> : error && !articles.length ? <div className="admin-empty"><h3>Não foi possível carregar o acervo</h3><p>{error}</p><button className="text-button" type="button" onClick={() => void reload()}>Tentar novamente</button></div> : visible.length ? <div className="draft-list">{visible.map((article) => <article className="draft-row editorial-row" key={article.id}>
           <div className="draft-row-main"><span className={article.status === "published" ? "status-dot" : "status-dot archived-dot"} /><div><b>{article.title}</b><small>{article.source_name} · {article.category} · {article.status === "published" ? "Publicada" : "Arquivada"}</small></div></div>
           <div className="row-actions"><button type="button" onClick={() => beginEdit(article)}>Editar</button><button type="button" onClick={() => void deleteArticle(article)}>Excluir</button><Link href={`/noticia/${article.slug}`} target="_blank">Abrir</Link></div>

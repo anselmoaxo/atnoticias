@@ -1,7 +1,7 @@
 ALTER TABLE news_articles DROP CONSTRAINT IF EXISTS news_articles_category_check;
 ALTER TABLE news_articles ADD CONSTRAINT news_articles_category_check CHECK (category IN (
   'Inteligência artificial', 'Aplicativos', 'Segurança digital', 'Celulares',
-  'Computadores', 'Startups', 'Ciência e inovação', 'Games', 'Tecnologia'
+  'Computadores', 'Startups', 'Ciência e inovação', 'Games', 'Telecomunicações', 'Tecnologia'
 ));
 
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (

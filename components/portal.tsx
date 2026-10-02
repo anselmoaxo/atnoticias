@@ -16,6 +16,25 @@ function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone });
 }
 
+// Destaque: entre as notícias das 6 horas mais recentes, a de maior relevância (assuntos do Brasil e anúncios oficiais pesam mais).
+function pickLead(articles: NewsArticle[]) {
+  const newest = articles[0];
+  if (!newest) return undefined;
+  const windowStart = new Date(newest.published_at).getTime() - 6 * 60 * 60 * 1000;
+  return articles.filter((article) => new Date(article.published_at).getTime() >= windowStart)
+    .reduce((best, article) => (article.relevance ?? 0) > (best.relevance ?? 0) ? article : best, newest);
+}
+
+function SourceMeta({ article, withReading = false }: { article: NewsArticle; withReading?: boolean }) {
+  return <div className="p-meta">
+    <b>{article.source_name}</b>
+    {article.source_type === "official" && <span className="p-badge">Anúncio oficial</span>}
+    {article.language === "en" && <span className="p-badge p-badge-muted" lang="pt-BR">Em inglês</span>}
+    <span>{article.category}</span>
+    {withReading && <span>{readingMinutes(article)} min de leitura</span>}
+  </div>;
+}
+
 function readingMinutes(article: NewsArticle) {
   return Math.max(1, Math.ceil(`${article.title} ${article.summary}`.trim().split(/\s+/).length / 220));
 }
@@ -48,8 +67,8 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
   const now = new Date();
   const todayKey = dayKey(now.toISOString());
   const yesterdayKey = dayKey(new Date(now.getTime() - 86400000).toISOString());
-  const lead = !query ? filteredArticles[0] : undefined;
-  const rest = (lead ? filteredArticles.slice(1) : filteredArticles).slice(0, 40);
+  const lead = !query ? pickLead(filteredArticles) : undefined;
+  const rest = (lead ? filteredArticles.filter((article) => article.id !== lead.id) : filteredArticles).slice(0, 40);
   const categoryName = categories.find((item) => item.slug === category)?.name;
 
   function dayHeading(iso: string) {
@@ -59,6 +78,12 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
     return new Date(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone });
   }
 
+  // A data acompanha o destaque para que uma notícia antiga nunca pareça de hoje.
+  function leadFlag(iso: string) {
+    const day = dayHeading(iso);
+    return day === "Hoje" ? "Destaque de hoje" : day === "Ontem" ? "Destaque · publicado ontem" : `Destaque · publicado em ${day}`;
+  }
+
   function renderItem(article: NewsArticle, isLead = false) {
     const Heading = isLead ? "h2" : "h3";
     return (
@@ -66,11 +91,11 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
         <time className="p-time" dateTime={article.published_at}>{timeLabel(article.published_at)}</time>
         <div className="p-row">
           <div>
-            {isLead && <span className="p-flag">Mais recente</span>}
-            {!isLead && <div className="p-meta"><b>{article.source_name}</b><span>{article.category}</span></div>}
-            <Heading><Link href={`/noticia/${article.slug}`}>{article.title}</Link></Heading>
-            <p className="p-sum">{article.summary}</p>
-            {isLead && <div className="p-meta"><b>{article.source_name}</b><span>{article.category}</span><span>{readingMinutes(article)} min de leitura</span></div>}
+            {isLead && <span className="p-flag" suppressHydrationWarning>{leadFlag(article.published_at)}</span>}
+            {!isLead && <SourceMeta article={article} />}
+            <Heading lang={article.language === "en" ? "en" : undefined}><Link href={`/noticia/${article.slug}`}>{article.title}</Link></Heading>
+            <p className="p-sum" lang={article.language === "en" ? "en" : undefined}>{article.summary}</p>
+            {isLead && <SourceMeta article={article} withReading />}
           </div>
           {!isLead && article.image_url && (
             <Link href={`/noticia/${article.slug}`} className="p-thumb" tabIndex={-1} aria-hidden="true">
