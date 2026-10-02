@@ -14,6 +14,29 @@ export function openNewsletter() {
   window.dispatchEvent(new Event(openEvent));
 }
 
+export type NewsletterResult = { tone: "success" | "error"; message: string };
+
+/** Envia a inscrição para /api/newsletter/subscribe. Usado pelo convite e pelo formulário do rodapé. */
+export async function subscribeNewsletter(email: string, consent: boolean): Promise<NewsletterResult> {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { tone: "error", message: "Confira o endereço de e-mail e tente novamente." };
+  if (!consent) return { tone: "error", message: "Marque a autorização para receber os e-mails." };
+  try {
+    const response = await fetch("/api/newsletter/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, consent, website: "" }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
+    try {
+      window.localStorage.setItem(subscribedKey, "1");
+    } catch { /* Sem armazenamento local, o convite volta a aparecer na próxima visita. */ }
+    return { tone: "success", message: data.message ?? "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." };
+  } catch (reason) {
+    return { tone: "error", message: reason instanceof Error ? reason.message : "Não foi possível salvar sua inscrição agora." };
+  }
+}
+
 function isSuppressed() {
   try {
     return window.localStorage.getItem(subscribedKey) === "1" || Number(window.localStorage.getItem(dismissKey) || 0) > Date.now();
@@ -68,35 +91,14 @@ export function NewsletterInvite() {
   async function submitNewsletter(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMessage("Confira o endereço de e-mail e tente novamente.");
-      return;
-    }
-    if (!consent) {
-      setMessage("Marque a autorização para receber os e-mails.");
-      return;
-    }
     setSaving(true);
-    try {
-      const response = await fetch("/api/newsletter/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, consent, website: "" }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
-      setMessageTone("success");
-      try {
-        window.localStorage.setItem(subscribedKey, "1");
-      } catch { /* Sem armazenamento local, o convite volta a aparecer na próxima visita. */ }
-      setMessage(data.message ?? "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição.");
+    const result = await subscribeNewsletter(email, consent);
+    setSaving(false);
+    setMessageTone(result.tone);
+    setMessage(result.message);
+    if (result.tone === "success") {
       setEmail("");
       setConsent(false);
-    } catch (reason) {
-      setMessageTone("error");
-      setMessage(reason instanceof Error ? reason.message : "Não foi possível salvar sua inscrição agora.");
-    } finally {
-      setSaving(false);
     }
   }
 

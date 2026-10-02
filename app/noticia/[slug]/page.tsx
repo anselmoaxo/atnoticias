@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NewsletterInvite } from "@/components/newsletter-invite";
+import { SiteFooter } from "@/components/site-footer";
 import { categories } from "@/lib/content";
 import { getNewsBySlug, incrementNewsView } from "@/lib/news/repository";
 
@@ -45,6 +46,7 @@ export default async function ArticlePage({ params }: Props) {
       <p className="p-note">Esta página mostra o título e a descrição publicados por {article.source_name}. Para ler a matéria completa, acesse o site original.</p>
       <a className="p-btn" href={article.source_url} target="_blank" rel="noopener noreferrer">Ler a matéria em {article.source_name}</a>
     </article></main>
+    <SiteFooter />
     <NewsletterInvite />
   </div>;
 }
