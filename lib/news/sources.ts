@@ -26,7 +26,7 @@ const base = { defaultCategory: "Tecnologia", enabled: true, useImages: true, ma
 // é a tabela news_sources (editada no painel); esta lista serve ao `npm run news:check`, que roda sem banco.
 export const defaultSources: NewsSource[] = [
   { ...base, id: "tecnoblog", name: "Tecnoblog", siteUrl: "https://tecnoblog.net/", kind: "rss", feedUrl: "https://tecnoblog.net/feed/", sourceType: "editorial", language: "pt-BR" },
-  { ...base, id: "canaltech", name: "Canaltech", siteUrl: "https://canaltech.com.br/", kind: "rss", feedUrl: "https://canaltech.com.br/rss/google-assistente/", sourceType: "editorial", language: "pt-BR" },
+  { ...base, id: "canaltech", name: "Canaltech", siteUrl: "https://canaltech.com.br/", kind: "manual", feedUrl: null, sourceType: "editorial", language: "pt-BR" },
   { ...base, id: "tecmundo", name: "TecMundo", siteUrl: "https://www.tecmundo.com.br/", kind: "rss", feedUrl: "https://rss.tecmundo.com.br/feed", sourceType: "editorial", language: "pt-BR" },
   { ...base, id: "olhar-digital", name: "Olhar Digital", siteUrl: "https://olhardigital.com.br/", kind: "rss", feedUrl: "https://olhardigital.com.br/feed/", sourceType: "editorial", language: "pt-BR" },
   { ...base, id: "techtudo", name: "TechTudo", siteUrl: "https://www.techtudo.com.br/", kind: "rss", feedUrl: "https://pox.globo.com/rss/techtudo/", sourceType: "editorial", language: "pt-BR" },

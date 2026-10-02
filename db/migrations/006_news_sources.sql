@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS news_sources (
 -- Fontes iniciais. ON CONFLICT DO NOTHING preserva o que o admin alterou no painel quando a migração roda de novo.
 INSERT INTO news_sources (id, name, site_url, kind, feed_url, path_prefix, source_type, language, default_category, notes) VALUES
   ('tecnoblog', 'Tecnoblog', 'https://tecnoblog.net/', 'rss', 'https://tecnoblog.net/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
-  ('canaltech', 'Canaltech', 'https://canaltech.com.br/', 'rss', 'https://canaltech.com.br/rss/google-assistente/', NULL, 'editorial', 'pt-BR', 'Tecnologia', 'O robots.txt bloqueia /rss/ para robôs em geral e libera só /rss/google-assistente/, que é o feed usado aqui.'),
+  ('canaltech', 'Canaltech', 'https://canaltech.com.br/', 'manual', NULL, NULL, 'editorial', 'pt-BR', 'Tecnologia', 'O robots.txt do Canaltech proíbe robôs em /rss/ (só libera um feed do Google Assistente, sem links). Use o cadastro manual ou peça ao Canaltech autorização para este robô.'),
   ('tecmundo', 'TecMundo', 'https://www.tecmundo.com.br/', 'rss', 'https://rss.tecmundo.com.br/feed', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
   ('olhar-digital', 'Olhar Digital', 'https://olhardigital.com.br/', 'rss', 'https://olhardigital.com.br/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
   ('techtudo', 'TechTudo', 'https://www.techtudo.com.br/', 'rss', 'https://pox.globo.com/rss/techtudo/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
