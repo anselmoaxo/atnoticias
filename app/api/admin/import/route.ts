@@ -8,7 +8,7 @@ export async function POST() {
   const denied = await requireAdminApi();
   if (denied) return denied;
   try {
-    return Response.json(await importNews(), { headers: { "Cache-Control": "no-store" } });
+    return Response.json(await importNews({ trigger: "manual" }), { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "Falha ao consultar os feeds. Tente novamente mais tarde." }, { status: 503 });
   }

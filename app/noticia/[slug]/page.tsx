@@ -33,18 +33,23 @@ export default async function ArticlePage({ params }: Props) {
   await incrementNewsView(article.id).catch(() => undefined);
   const category = categories.find((item) => item.name === article.category);
   const date = new Date(article.published_at).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" });
+  const ageDays = Math.floor((Date.now() - new Date(article.published_at).getTime()) / 86_400_000);
+  const official = article.source_type === "official";
   const readingMinutes = Math.max(1, Math.ceil(`${article.title} ${article.summary}`.trim().split(/\s+/).length / 220));
 
   return <div className="p-site">
     <div className="p-wrap"><header className="p-header"><Link href="/" className="p-brand" aria-label="Anselmo Tech Notícias, início"><span className="p-dot" aria-hidden="true" />Anselmo Tech <b>Notícias</b></Link><Link href="/" className="p-linkbtn">Todas as notícias</Link></header></div>
     <main><article className="p-article">
       <Link className="p-cat" href={category ? `/categoria/${category.slug}` : "/"}>{article.category}</Link>
-      <h1>{article.title}</h1>
-      <p className="p-lede">{article.summary}</p>
-      <div className="p-byline"><b>{article.source_name}</b><time dateTime={article.published_at}>{date}</time><span>{readingMinutes} min de leitura</span></div>
-      {article.image_url ? <div className="p-cover"><Image src={article.image_url} alt="" width={1200} height={675} sizes="(max-width: 760px) 100vw, 700px" unoptimized priority /></div> : null}
-      <p className="p-note">Esta página mostra o título e a descrição publicados por {article.source_name}. Para ler a matéria completa, acesse o site original.</p>
-      <a className="p-btn" href={article.source_url} target="_blank" rel="noopener noreferrer">Ler a matéria em {article.source_name}</a>
+      <h1 lang={article.language === "en" ? "en" : undefined}>{article.title}</h1>
+      <p className="p-lede" lang={article.language === "en" ? "en" : undefined}>{article.summary}</p>
+      <div className="p-byline"><b>{official ? `Anúncio oficial de ${article.source_name}` : `Reportagem de ${article.source_name}`}</b><span>Publicado em <time dateTime={article.published_at}>{date}</time></span>{article.language === "en" ? <span>Original em inglês</span> : <span>{readingMinutes} min de leitura</span>}</div>
+      {ageDays >= 3 && <p className="p-stale">Esta notícia foi publicada há {ageDays} dias. Pode haver informações mais recentes na fonte.</p>}
+      {article.image_url ? <figure className="p-figure"><div className="p-cover"><Image src={article.image_url} alt="" width={1200} height={675} sizes="(max-width: 760px) 100vw, 700px" unoptimized priority /></div><figcaption>{article.image_credit ?? `Imagem: ${article.source_name}`}</figcaption></figure> : null}
+      <p className="p-note">{official
+        ? `Esta página resume um comunicado publicado pela própria ${article.source_name}. Para ler o anúncio completo, acesse o site oficial.`
+        : `Esta página mostra um resumo breve da reportagem publicada por ${article.source_name}. Para ler a matéria completa, acesse o site original.`}</p>
+      <a className="p-btn" href={article.source_url} target="_blank" rel="noopener noreferrer">{official ? `Ler o anúncio em ${article.source_name}` : `Ler a matéria em ${article.source_name}`}</a>
     </article></main>
     <SiteFooter />
     <NewsletterInvite />

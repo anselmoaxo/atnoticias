@@ -13,10 +13,16 @@ GRANT USAGE ON SCHEMA public TO atn_app, atn_importer;
 -- Site: lê e edita notícias, gerencia inscritos e limites. Sem DDL.
 GRANT SELECT, INSERT, UPDATE, DELETE ON news_articles, newsletter_subscribers, newsletter_signup_limits, rate_limits TO atn_app;
 GRANT SELECT, INSERT, UPDATE ON news_import_runs TO atn_app;
+-- Painel de coleta: cadastra e edita fontes e ajusta frequência. Não exclui fontes (o painel só desativa).
+GRANT SELECT, INSERT, UPDATE ON news_sources TO atn_app;
+GRANT SELECT, UPDATE ON news_collector_settings TO atn_app;
 
 -- Importador: só grava notícias novas e o registro da execução. Nenhum acesso aos inscritos.
 GRANT SELECT, INSERT ON news_articles TO atn_importer;
 GRANT SELECT, INSERT, UPDATE ON news_import_runs TO atn_importer;
+-- Lê as fontes e a configuração; atualiza só o estado da última consulta de cada fonte.
+GRANT SELECT, UPDATE ON news_sources TO atn_importer;
+GRANT SELECT ON news_collector_settings TO atn_importer;
 REVOKE ALL ON newsletter_subscribers, newsletter_signup_limits, rate_limits FROM atn_importer;
 
 -- n8n (envio diário da newsletter): só lê notícias publicadas e os inscritos confirmados.
