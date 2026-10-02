@@ -25,5 +25,9 @@ export async function sendConfirmationEmail(to: string, token: string) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from, to: [to], subject, html, text }),
   });
-  if (!response.ok) throw new Error(`ResendFailed:${response.status}`);
+  if (!response.ok) {
+    // O Resend explica o erro em `message` (chave inválida, domínio não verificado etc.).
+    const detail = await response.json().then((body: { message?: unknown }) => String(body?.message ?? ""), () => "");
+    throw new Error(`ResendFailed:${response.status}${detail ? `:${detail.slice(0, 200)}` : ""}`);
+  }
 }
