@@ -23,11 +23,15 @@ export async function POST(request: Request) {
 
   try {
     const result = await registerNewsletterEmail(email, clientAddressFrom(request.headers));
+    // Só o motivo vai para o log, nunca o endereço. A resposta é a mesma em todos os casos,
+    // para não revelar quem já está inscrito.
+    console.info(`Newsletter: inscrição ${result}`);
     if (result === "rate-limited") {
       return Response.json({ error: "Muitas tentativas. Aguarde uma hora e tente novamente." }, { status: 429, headers: { ...noStore, "Retry-After": "3600" } });
     }
     return Response.json({ message: "Enviamos um e-mail de confirmação. Abra a mensagem e clique no link para ativar a inscrição." }, { headers: noStore });
-  } catch {
+  } catch (error) {
+    console.error("Newsletter: falha na inscrição:", error instanceof Error ? error.message : "erro desconhecido");
     return Response.json({ error: "Não foi possível salvar sua inscrição agora. Tente novamente mais tarde." }, { status: 503, headers: noStore });
   }
 }

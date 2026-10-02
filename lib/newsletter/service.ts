@@ -10,7 +10,9 @@ export function normalizeNewsletterEmail(value: unknown): string | null {
   return email;
 }
 
-export async function registerNewsletterEmail(email: string, clientAddress: string): Promise<"saved" | "rate-limited"> {
+export type NewsletterSignupResult = "sent" | "already-subscribed" | "recently-sent" | "rate-limited";
+
+export async function registerNewsletterEmail(email: string, clientAddress: string): Promise<NewsletterSignupResult> {
   const clientKey = rateLimitKey("newsletter-signup", clientAddress);
   const sql = getDb();
 
@@ -42,9 +44,13 @@ export async function registerNewsletterEmail(email: string, clientAddress: stri
      RETURNING id`,
     [randomUUID(), email, hashToken(token)],
   );
+  if (rows.length) {
+    await sendConfirmationEmail(email, token);
+    return "sent";
+  }
   // Sem linha: já inscrito ou pedido enviado há menos de 2 minutos. Nada é reenviado.
-  if (rows.length) await sendConfirmationEmail(email, token);
-  return "saved";
+  const existing = await sql.query("SELECT status FROM newsletter_subscribers WHERE normalized_email = $1", [email]);
+  return (existing[0] as { status: string } | undefined)?.status === "subscribed" ? "already-subscribed" : "recently-sent";
 }
 
 export function hashToken(token: string) {
