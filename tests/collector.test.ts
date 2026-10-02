@@ -138,7 +138,8 @@ describe("migração das fontes", () => {
   const sql = readFileSync("db/migrations/006_news_sources.sql", "utf8");
   it("semeia exatamente as fontes de lib/news/sources.ts", () => {
     for (const source of defaultSources) {
-      assert.ok(sql.includes(`('${source.id}', '${source.name}', '${source.siteUrl}', '${source.kind}', '${source.feedUrl}'`), source.id);
+      const feed = source.feedUrl ? `'${source.feedUrl}'` : "NULL";
+      assert.ok(sql.includes(`('${source.id}', '${source.name}', '${source.siteUrl}', '${source.kind}', ${feed}`), source.id);
     }
   });
 

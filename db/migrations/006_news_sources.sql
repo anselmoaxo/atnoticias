@@ -33,11 +33,11 @@ CREATE TABLE IF NOT EXISTS news_sources (
 -- Fontes iniciais. ON CONFLICT DO NOTHING preserva o que o admin alterou no painel quando a migração roda de novo.
 INSERT INTO news_sources (id, name, site_url, kind, feed_url, path_prefix, source_type, language, default_category, notes) VALUES
   ('tecnoblog', 'Tecnoblog', 'https://tecnoblog.net/', 'rss', 'https://tecnoblog.net/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
-  ('canaltech', 'Canaltech', 'https://canaltech.com.br/', 'rss', 'https://canaltech.com.br/rss/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
+  ('canaltech', 'Canaltech', 'https://canaltech.com.br/', 'rss', 'https://canaltech.com.br/rss/google-assistente/', NULL, 'editorial', 'pt-BR', 'Tecnologia', 'O robots.txt bloqueia /rss/ para robôs em geral e libera só /rss/google-assistente/, que é o feed usado aqui.'),
   ('tecmundo', 'TecMundo', 'https://www.tecmundo.com.br/', 'rss', 'https://rss.tecmundo.com.br/feed', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
   ('olhar-digital', 'Olhar Digital', 'https://olhardigital.com.br/', 'rss', 'https://olhardigital.com.br/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
   ('techtudo', 'TechTudo', 'https://www.techtudo.com.br/', 'rss', 'https://pox.globo.com/rss/techtudo/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
-  ('adrenaline', 'Adrenaline', 'https://www.adrenaline.com.br/noticias/', 'rss', 'https://www.adrenaline.com.br/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
+  ('adrenaline', 'Adrenaline', 'https://www.adrenaline.com.br/noticias/', 'manual', NULL, NULL, 'editorial', 'pt-BR', 'Tecnologia', 'O site recusa acesso automático (HTTP 403 no feed e no robots.txt). Use o cadastro manual ou peça à Adrenaline liberação do feed para este robô.'),
   ('convergencia-digital', 'Convergência Digital', 'https://convergenciadigital.com.br/', 'rss', 'https://convergenciadigital.com.br/feed/', NULL, 'editorial', 'pt-BR', 'Tecnologia', NULL),
   ('openai', 'OpenAI', 'https://openai.com/pt-BR/news/', 'rss', 'https://openai.com/news/rss.xml', NULL, 'official', 'en', 'Inteligência artificial', 'Feed oficial em inglês. A página em português não publica feed próprio.'),
   ('anthropic', 'Anthropic', 'https://www.anthropic.com/news', 'sitemap', 'https://www.anthropic.com/sitemap.xml', 'https://www.anthropic.com/news/', 'official', 'en', 'Inteligência artificial', 'Sem RSS oficial. A coleta usa o sitemap público e os metadados de cada página (robots.txt permite).'),

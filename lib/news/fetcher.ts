@@ -83,18 +83,24 @@ async function rawFetch(url: string, headers: Record<string, string>): Promise<R
 }
 
 export class PoliteFetcher {
-  private robots = new Map<string, Promise<RobotsRules | "unavailable">>();
+  private robots = new Map<string, Promise<RobotsRules | { unavailable: string }>>();
 
   private loadRobots(origin: string) {
     let cached = this.robots.get(origin);
     if (!cached) {
       cached = (async () => {
-        try {
-          const response = await rawFetch(`${origin}/robots.txt`, { Accept: "text/plain" });
-          if (response.status >= 500) return "unavailable" as const;
-          if (!response.ok) return [];
-          return parseRobots(await readLimited(response));
-        } catch { return "unavailable" as const; }
+        // Sem robots.txt (4xx) está liberado; erro de servidor ou de rede fica para a próxima coleta, após uma nova tentativa.
+        let reason = "";
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const response = await rawFetch(`${origin}/robots.txt`, {});
+            if (response.status >= 500) { reason = `HTTP ${response.status}`; await response.body?.cancel(); }
+            else if (!response.ok) { await response.body?.cancel(); return []; }
+            else return parseRobots(await readLimited(response));
+          } catch (error) { reason = error instanceof SourceFetchError ? error.kind : "erro de rede"; }
+          if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1_000));
+        }
+        return { unavailable: reason };
       })();
       this.robots.set(origin, cached);
     }
@@ -104,7 +110,7 @@ export class PoliteFetcher {
   async assertAllowed(url: string) {
     const target = new URL(url);
     const rules = await this.loadRobots(target.origin);
-    if (rules === "unavailable") throw new SourceFetchError("network", null, "O robots.txt da fonte está indisponível; a consulta fica para a próxima coleta.");
+    if (!Array.isArray(rules)) throw new SourceFetchError("network", null, `O robots.txt da fonte está indisponível (${rules.unavailable}); a consulta fica para a próxima coleta.`);
     if (!robotsAllows(rules, `${target.pathname}${target.search}`)) {
       throw new SourceFetchError("robots", null, "O robots.txt do site não permite a leitura automática deste endereço.");
     }
