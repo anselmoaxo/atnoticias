@@ -87,15 +87,16 @@ export function SiteFooter() {
         </nav>
 
         <section className="p-foot-news" aria-labelledby="foot-news">
-          <h2 id="foot-news">Receba as principais notícias</h2>
-          <p>Um resumo diário de tecnologia no seu e-mail. Você confirma a inscrição pelo link que enviaremos.</p>
+          <h2 id="foot-news">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-11Zm.5-.5 8.5 7 8.5-7" /></svg>
+            Tecnologia sem ruído, todo dia
+          </h2>
+          <p>Assine a newsletter da Anselmo Tech Notícias e receba as principais notícias de tecnologia direto no seu e-mail.</p>
           <form onSubmit={(event) => void submit(event)} noValidate aria-busy={saving}>
-            <label className="sr-only" htmlFor="foot-email">Seu e-mail</label>
-            <div className="p-foot-field">
-              <input id="foot-email" type="email" autoComplete="email" maxLength={254} placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={invalid || undefined} aria-describedby="foot-status" required />
-              <button className="p-btn" type="submit" disabled={saving}>{saving ? "Assinando…" : "Assinar"}</button>
-            </div>
-            <label className="p-foot-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades da Anselmo Tech Notícias para este e-mail.</span></label>
+            <label htmlFor="foot-email">E-mail</label>
+            <input id="foot-email" type="email" autoComplete="email" maxLength={254} placeholder="Digite seu e-mail" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={invalid || undefined} aria-describedby="foot-status" required />
+            <button className="p-foot-submit" type="submit" disabled={saving}>{saving ? "Assinando…" : "Assinar"}</button>
+            <label className="p-foot-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades para este e-mail e li a <Link href="/privacidade">Política de Privacidade</Link>.</span></label>
             <p className="p-foot-status" id="foot-status" data-tone={result?.tone} role="status" aria-live="polite">{result?.message}</p>
           </form>
         </section>
@@ -103,7 +104,6 @@ export function SiteFooter() {
 
       <div className="p-wrap p-foot-bottom">
         <p>© <span suppressHydrationWarning>{currentYear()}</span> Anselmo Tech Notícias. Todos os direitos reservados.</p>
-        <Link href="/admin">Painel</Link>
       </div>
     </footer>
   );
