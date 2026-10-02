@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { categories, type NewsArticle } from "@/lib/content";
 import { NewsletterInvite, openNewsletter } from "@/components/newsletter-invite";
+import { SiteFooter } from "@/components/site-footer";
 
 const timeZone = "America/Sao_Paulo";
 
@@ -150,18 +151,9 @@ export function Portal({ initialCategory, initialArticles = [], popularArticles 
             </section>
           </div>
         </div>
-
-        <footer className="p-footer">
-          <p>Reunimos os títulos e resumos publicados pelas fontes. A matéria completa fica no site original.</p>
-          <nav aria-label="Rodapé">
-            <button onClick={openNewsletter}>Newsletter</button>
-            <Link href="/privacidade">Privacidade</Link>
-            <a href="mailto:contato@anselmotechnoticias.example">Contato</a>
-            <Link href="/admin">Painel</Link>
-          </nav>
-        </footer>
       </div>
 
+      <SiteFooter />
       <NewsletterInvite />
     </div>
   );

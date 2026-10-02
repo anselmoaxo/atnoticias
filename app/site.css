@@ -86,11 +86,39 @@
 .p-btn:disabled{opacity:.6;cursor:wait}
 
 /* Rodapé */
-.p-footer{border-top:1px solid var(--p-rule);padding:30px 0 44px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px 40px;font-size:.875rem;color:var(--p-stone)}
-.p-footer p{margin:0;max-width:52ch}
-.p-footer nav{display:flex;gap:24px}
-.p-footer nav a,.p-footer nav button{background:none;border:0;padding:0;font:inherit;color:var(--p-ink);cursor:pointer}
-.p-footer nav a:hover,.p-footer nav button:hover{color:var(--p-ultra)}
+.p-foot{--p-foot-text:#c9cdd6;--p-foot-muted:#9aa1ae;--p-foot-accent:#aab4ff;--p-foot-rule:#ffffff1f;background:var(--p-ink);color:var(--p-foot-text);font-size:.9375rem}
+.p-foot :is(a,button,input):focus-visible{outline-color:var(--p-foot-accent)}
+.p-foot-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,.8fr) minmax(0,1.5fr);gap:40px 48px;padding:56px 0 44px}
+.p-foot h2{margin:0 0 16px;font-size:.8125rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.p-foot .p-brand{color:#fff}
+.p-foot .p-brand b{color:var(--p-foot-muted)}
+.p-foot-about p{margin:16px 0 0;max-width:38ch;font-family:var(--p-serif);font-size:1rem;line-height:1.6}
+.p-foot-col ul,.p-social{list-style:none;margin:0;padding:0}
+.p-foot-col li+li{margin-top:4px}
+.p-foot-col :is(a,button){display:inline-block;padding:4px 0;background:none;border:0;font:inherit;color:var(--p-foot-text);cursor:pointer;transition:color .15s}
+.p-foot-col :is(a,button):hover{color:var(--p-foot-accent)}
+.p-social{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.p-social a{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--p-foot-rule);border-radius:50%;color:var(--p-foot-text);transition:color .15s,border-color .15s}
+.p-social a:hover{color:#fff;border-color:var(--p-foot-accent)}
+.p-site .p-social a:focus-visible{border-radius:50%}
+.p-foot-news p{margin:0 0 16px;font-family:var(--p-serif);font-size:1rem;line-height:1.55}
+.p-foot-field{display:flex;gap:8px}
+.p-foot-field input{flex:1;min-width:0;height:46px;border:1.5px solid #5e6674;border-radius:2px;background:#1c1f27;color:#fff;padding:0 12px;font:inherit;font-size:1rem}
+.p-foot-field input::placeholder{color:var(--p-foot-muted)}
+.p-foot-field input:hover{border-color:var(--p-foot-muted)}
+.p-site .p-foot-field input:focus-visible{outline:2px solid var(--p-foot-accent);outline-offset:2px;border-color:var(--p-foot-accent)}
+.p-foot-field input[aria-invalid=true]{border-color:#ff8a80}
+.p-foot .p-btn{flex:none;height:46px;padding:0 22px;background:var(--p-ultra)}
+.p-foot .p-btn:hover{background:#4256ff}
+.p-foot-consent{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:.875rem;line-height:1.5;color:var(--p-foot-muted);cursor:pointer}
+.p-foot-consent input{margin:3px 0 0;width:16px;height:16px;flex:none;accent-color:var(--p-ultra)}
+.p-foot-news .p-foot-status{min-height:21px;margin:10px 0 0;font-family:var(--p-sans);font-size:.875rem;line-height:1.45}
+.p-foot-status[data-tone=error]{color:#ff8a80}
+.p-foot-status[data-tone=success]{color:#7ee2a0}
+.p-foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 24px;padding:20px 0 28px;border-top:1px solid var(--p-foot-rule);font-size:.8125rem;color:var(--p-foot-muted)}
+.p-foot-bottom p{margin:0}
+.p-foot-bottom a{color:var(--p-foot-muted)}
+.p-foot-bottom a:hover{color:var(--p-foot-accent)}
 
 /* Janela da newsletter */
 .p-backdrop{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:20px;background:#12141ab8}
@@ -130,6 +158,9 @@
   .p-cats a{white-space:nowrap;padding:8px 0;margin:0;border-left:0;border-bottom:2px solid transparent}
   .p-cats a[aria-current=page]{border-left-color:transparent;border-bottom-color:var(--p-ultra)}
   .p-extras{margin-top:56px}
+  .p-foot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 32px}
+  .p-foot-about,.p-foot-news{grid-column:1/-1}
+  .p-foot-news{max-width:560px}
 }
 @media(max-width:640px){
   .p-site{--p-rail:4px;--p-gutter:24px}
@@ -144,5 +175,9 @@
   .p-item::before{left:-24px}
   .p-modal{padding:34px 22px 22px}
   .p-article{padding-top:36px}
+  .p-foot-grid{grid-template-columns:minmax(0,1fr);gap:36px;padding:44px 0 32px}
+  .p-foot-about{order:-1}
+  .p-foot-col :is(a,button){padding:8px 0}
+  .p-foot-col li+li{margin-top:0}
 }
 @media(prefers-reduced-motion:reduce){.p-river::before{animation:none}}
