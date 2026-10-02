@@ -82,6 +82,7 @@
 .p-news p{margin:0 0 14px;font-family:var(--p-serif);font-size:1rem;line-height:1.55;color:#3a4150}
 .p-btn{display:inline-block;border:0;border-radius:2px;background:var(--p-ink);color:#fff;font:inherit;font-size:.9375rem;font-weight:600;padding:12px 18px;cursor:pointer;transition:background .15s}
 .p-btn:hover{background:var(--p-ultra)}
+.p-site a.p-btn{color:#fff}
 .p-btn:disabled{opacity:.6;cursor:wait}
 
 /* Rodapé */
