@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { TurnstileField, turnstileOn, type TurnstileHandle } from "@/components/turnstile-field";
+import { TurnstileField, turnstileSiteKey, type TurnstileHandle } from "@/components/turnstile-field";
 
 const dismissKey = "anselmo-tech-noticias-newsletter-dismissed-until";
 const subscribedKey = "anselmo-tech-noticias-newsletter-subscribed";
@@ -21,7 +21,7 @@ export type NewsletterResult = { tone: "success" | "error"; message: string };
 export async function subscribeNewsletter(email: string, consent: boolean, turnstileToken = ""): Promise<NewsletterResult> {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { tone: "error", message: "Confira o endereço de e-mail e tente novamente." };
   if (!consent) return { tone: "error", message: "Marque a autorização para receber os e-mails." };
-  if (turnstileOn && !turnstileToken) return { tone: "error", message: "Aguarde a verificação anti-robô terminar e tente de novo." };
+  if (turnstileSiteKey() && !turnstileToken) return { tone: "error", message: "Aguarde a verificação anti-robô terminar e tente de novo." };
   try {
     const response = await fetch("/api/newsletter/subscribe", {
       method: "POST",

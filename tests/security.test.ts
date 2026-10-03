@@ -90,8 +90,15 @@ describe("verifyTurnstile", () => {
     assert.equal(await verifyTurnstile(undefined, "1.2.3.4", okFetch({ success: false })), true);
   });
 
-  it("com a chave, exige token válido da ação newsletter", async () => {
+  it("com só uma das chaves, deixa passar", async () => {
     process.env.TURNSTILE_SECRET_KEY = "segredo";
+    delete process.env.TURNSTILE_SITE_KEY;
+    assert.equal(await verifyTurnstile(undefined, "1.2.3.4", okFetch({ success: false })), true);
+  });
+
+  it("com as duas chaves, exige token válido da ação newsletter", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "segredo";
+    process.env.TURNSTILE_SITE_KEY = "chave";
     assert.equal(await verifyTurnstile("", "1.2.3.4", okFetch({ success: true, action: "newsletter" })), false);
     assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({ success: true, action: "newsletter" })), true);
     assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({ success: true, action: "login" })), false);
@@ -101,6 +108,7 @@ describe("verifyTurnstile", () => {
 
   it("falha fechado se o Cloudflare não responder", async () => {
     process.env.TURNSTILE_SECRET_KEY = "segredo";
+    process.env.TURNSTILE_SITE_KEY = "chave";
     const failing = (async () => { throw new Error("offline"); }) as typeof fetch;
     assert.equal(await verifyTurnstile("tok", "1.2.3.4", failing), false);
   });

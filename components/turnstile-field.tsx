@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useRef } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 
-const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 const scriptSrc = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
-/** Sem NEXT_PUBLIC_TURNSTILE_SITE_KEY o widget não aparece e o formulário envia sem token. */
-export const turnstileOn = siteKey !== "";
+/** Chave pública que app/layout.tsx põe no <body> quando TURNSTILE_SITE_KEY e TURNSTILE_SECRET_KEY estão configuradas. */
+export function turnstileSiteKey(): string {
+  return typeof document === "undefined" ? "" : document.body.dataset.turnstileSiteKey ?? "";
+}
 
 type TurnstileApi = {
   render(container: HTMLElement, options: Record<string, unknown>): string;
@@ -54,14 +55,18 @@ export function TurnstileField({ onToken, ref }: { onToken(token: string): void;
     },
   }), []);
 
+  const [siteKey, setSiteKey] = useState("");
+
   useEffect(() => {
-    if (!turnstileOn) return;
+    const key = turnstileSiteKey();
+    setSiteKey(key);
+    if (!key) return;
     let cancelled = false;
     loadTurnstile()
       .then((turnstile) => {
         if (cancelled || !containerRef.current) return;
         widgetRef.current = turnstile.render(containerRef.current, {
-          sitekey: siteKey,
+          sitekey: key,
           action: "newsletter",
           language: "pt-br",
           size: "flexible",
@@ -78,6 +83,6 @@ export function TurnstileField({ onToken, ref }: { onToken(token: string): void;
     };
   }, []);
 
-  if (!turnstileOn) return null;
-  return <div className="p-turnstile" ref={containerRef} />;
+  // O contêiner existe sempre, para o widget poder ser montado assim que o script carregar; sem chave fica vazio.
+  return <div className={siteKey ? "p-turnstile" : undefined} ref={containerRef} />;
 }
