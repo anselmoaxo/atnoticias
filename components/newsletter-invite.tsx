@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { TurnstileField, turnstileSiteKey, type TurnstileHandle } from "@/components/turnstile-field";
 
 const dismissKey = "anselmo-tech-noticias-newsletter-dismissed-until";
 const subscribedKey = "anselmo-tech-noticias-newsletter-subscribed";
@@ -17,14 +18,15 @@ export function openNewsletter() {
 export type NewsletterResult = { tone: "success" | "error"; message: string };
 
 /** Envia a inscrição para /api/newsletter/subscribe. Usado pelo convite e pelo formulário do rodapé. */
-export async function subscribeNewsletter(email: string, consent: boolean): Promise<NewsletterResult> {
+export async function subscribeNewsletter(email: string, consent: boolean, turnstileToken = ""): Promise<NewsletterResult> {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { tone: "error", message: "Confira o endereço de e-mail e tente novamente." };
   if (!consent) return { tone: "error", message: "Marque a autorização para receber os e-mails." };
+  if (turnstileSiteKey() && !turnstileToken) return { tone: "error", message: "Aguarde a verificação anti-robô terminar e tente de novo." };
   try {
     const response = await fetch("/api/newsletter/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, consent, website: "" }),
+      body: JSON.stringify({ email, consent, website: "", turnstileToken }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Não foi possível salvar sua inscrição.");
@@ -54,6 +56,8 @@ export function NewsletterInvite() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [messageTone, setMessageTone] = useState<"success" | "error">("error");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -92,7 +96,9 @@ export function NewsletterInvite() {
     event.preventDefault();
     setMessage("");
     setSaving(true);
-    const result = await subscribeNewsletter(email, consent);
+    const result = await subscribeNewsletter(email, consent, turnstileToken);
+    // O token só vale para um envio.
+    if (turnstileToken) turnstileRef.current?.reset();
     setSaving(false);
     setMessageTone(result.tone);
     setMessage(result.message);
@@ -124,6 +130,7 @@ export function NewsletterInvite() {
           <label htmlFor="newsletter-email">Seu e-mail</label>
           <input id="newsletter-email" type="email" autoComplete="email" maxLength={254} placeholder="voce@exemplo.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
           <label className="p-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades da Anselmo Tech Notícias para este e-mail.</span></label>
+          <TurnstileField ref={turnstileRef} onToken={setTurnstileToken} />
           <p className="p-status" data-tone={messageTone} role="status" aria-live="polite">{message}</p>
           <button className="p-btn" type="submit" disabled={saving}>{saving ? "Enviando…" : "Cadastrar e-mail"}</button>
         </form>

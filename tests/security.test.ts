@@ -5,6 +5,7 @@ import { isAllowedAuthEndpoint } from "@/lib/auth/endpoints";
 import { escapeHtml } from "@/lib/html";
 import { cleanText } from "@/lib/news/importer";
 import { readSecret } from "@/lib/secrets";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const originalEnv = { ...process.env };
 afterEach(() => { process.env = { ...originalEnv }; });
@@ -78,5 +79,37 @@ describe("segredos", () => {
 describe("escapeHtml", () => {
   it("escapa caracteres especiais de HTML", () => {
     assert.equal(escapeHtml(`<a href="x">'&'</a>`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
+  });
+});
+
+describe("verifyTurnstile", () => {
+  const okFetch = (payload: unknown, status = 200) => (async () => new Response(JSON.stringify(payload), { status })) as typeof fetch;
+
+  it("sem TURNSTILE_SECRET_KEY, deixa passar", async () => {
+    delete process.env.TURNSTILE_SECRET_KEY;
+    assert.equal(await verifyTurnstile(undefined, "1.2.3.4", okFetch({ success: false })), true);
+  });
+
+  it("com só uma das chaves, deixa passar", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "segredo";
+    delete process.env.TURNSTILE_SITE_KEY;
+    assert.equal(await verifyTurnstile(undefined, "1.2.3.4", okFetch({ success: false })), true);
+  });
+
+  it("com as duas chaves, exige token válido da ação newsletter", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "segredo";
+    process.env.TURNSTILE_SITE_KEY = "chave";
+    assert.equal(await verifyTurnstile("", "1.2.3.4", okFetch({ success: true, action: "newsletter" })), false);
+    assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({ success: true, action: "newsletter" })), true);
+    assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({ success: true, action: "login" })), false);
+    assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({ success: false })), false);
+    assert.equal(await verifyTurnstile("tok", "1.2.3.4", okFetch({}, 500)), false);
+  });
+
+  it("falha fechado se o Cloudflare não responder", async () => {
+    process.env.TURNSTILE_SECRET_KEY = "segredo";
+    process.env.TURNSTILE_SITE_KEY = "chave";
+    const failing = (async () => { throw new Error("offline"); }) as typeof fetch;
+    assert.equal(await verifyTurnstile("tok", "1.2.3.4", failing), false);
   });
 });
