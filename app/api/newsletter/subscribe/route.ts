@@ -1,5 +1,6 @@
 import { normalizeNewsletterEmail, registerNewsletterEmail } from "@/lib/newsletter/service";
 import { clientAddressFrom } from "@/lib/rate-limit";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 
@@ -21,8 +22,14 @@ export async function POST(request: Request) {
   if (!email) return Response.json({ error: "Confira o endereço de e-mail e tente novamente." }, { status: 400, headers: noStore });
   if (data.consent !== true) return Response.json({ error: "Marque a autorização para receber as novidades." }, { status: 400, headers: noStore });
 
+  const clientAddress = clientAddressFrom(request.headers);
+  if (!(await verifyTurnstile(data.turnstileToken, clientAddress))) {
+    console.info("Newsletter: inscrição recusada na verificação anti-robô");
+    return Response.json({ error: "Não conseguimos confirmar que você não é um robô. Aguarde a verificação e tente de novo." }, { status: 400, headers: noStore });
+  }
+
   try {
-    const result = await registerNewsletterEmail(email, clientAddressFrom(request.headers));
+    const result = await registerNewsletterEmail(email, clientAddress);
     // Só o motivo vai para o log, nunca o endereço.
     console.info(`Newsletter: inscrição ${result}`);
     if (result === "rate-limited") {

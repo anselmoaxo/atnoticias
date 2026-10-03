@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { categories } from "@/lib/content";
 import { openNewsletter, subscribeNewsletter, type NewsletterResult } from "@/components/newsletter-invite";
+import { TurnstileField, type TurnstileHandle } from "@/components/turnstile-field";
 
 // Categorias em destaque no rodapé, na ordem de exibição. Os nomes e endereços vêm de lib/content.ts.
 const footerCategorySlugs = ["tecnologia", "inteligencia-artificial", "seguranca-digital", "ciencia-inovacao", "aplicativos", "startups"];
@@ -39,12 +40,15 @@ export function SiteFooter() {
   const [consent, setConsent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<NewsletterResult | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setResult(null);
     setSaving(true);
-    const outcome = await subscribeNewsletter(email, consent);
+    const outcome = await subscribeNewsletter(email, consent, turnstileToken);
+    if (turnstileToken) turnstileRef.current?.reset();
     setSaving(false);
     setResult(outcome);
     if (outcome.tone === "success") {
@@ -100,6 +104,7 @@ export function SiteFooter() {
             <input id="foot-email" type="email" autoComplete="email" maxLength={254} placeholder="Digite seu e-mail" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={invalid || undefined} aria-describedby="foot-status" required />
             <button className="p-foot-submit" type="submit" disabled={saving}>{saving ? "Assinando…" : "Assinar"}</button>
             <label className="p-foot-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /> <span>Autorizo o envio de novidades para este e-mail e li a <Link href="/privacidade">Política de Privacidade</Link>.</span></label>
+            <TurnstileField ref={turnstileRef} onToken={setTurnstileToken} />
             <p className="p-foot-status" id="foot-status" data-tone={result?.tone} role="status" aria-live="polite">{result?.message}</p>
           </form>
         </section>

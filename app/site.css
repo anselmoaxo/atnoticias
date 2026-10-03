@@ -141,6 +141,7 @@
 .p-modal .p-later{display:block;margin:14px auto 0;background:none;border:0;font:inherit;font-size:.875rem;color:var(--p-stone);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .p-modal .p-close{position:absolute;right:12px;top:10px;width:36px;height:36px;border:0;background:none;font-size:1.75rem;line-height:1;color:var(--p-stone);cursor:pointer}
 .p-honeypot{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.p-turnstile{margin-top:14px;min-height:65px}
 
 /* Página da matéria */
 .p-article{width:min(700px,calc(100% - 48px));margin:0 auto;padding:56px 0 96px}
