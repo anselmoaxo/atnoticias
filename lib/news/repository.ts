@@ -1,10 +1,9 @@
 import { getDb } from "@/lib/db";
 import type { NewsArticle } from "@/lib/content";
 import { stripPromotions } from "@/lib/news/promotions";
-import { newsSources } from "@/lib/news/sources";
 
-// Só exibe fontes em português do Brasil que ainda estão configuradas.
-const activeSources = newsSources.map((source) => source.name);
+// Só exibe notícias de fontes cadastradas no painel (desativar a coleta de uma fonte não esconde o que já foi publicado).
+const knownSource = "EXISTS (SELECT 1 FROM news_sources s WHERE s.id = news_articles.source_id)";
 
 // Limpa também na leitura, para as notícias gravadas antes do filtro de divulgação.
 function publicArticle(row: unknown): NewsArticle {
@@ -13,25 +12,25 @@ function publicArticle(row: unknown): NewsArticle {
 }
 
 const articleFields = `id, slug, title, summary, category, author, image_url,
-  source_name, source_url, published_at, views, status`;
+  source_name, source_url, published_at, views, status, source_type, language, image_credit, relevance`;
 
 export async function listPublishedNews(category?: string): Promise<NewsArticle[]> {
   const sql = getDb();
   const rows = category
-    ? await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND source_name = ANY($2) AND category = $1 ORDER BY published_at DESC LIMIT 60`, [category, activeSources])
-    : await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND source_name = ANY($1) ORDER BY published_at DESC LIMIT 60`, [activeSources]);
+    ? await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND ${knownSource} AND category = $1 ORDER BY published_at DESC LIMIT 60`, [category])
+    : await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND ${knownSource} ORDER BY published_at DESC LIMIT 60`);
   return rows.map(publicArticle);
 }
 
 export async function listPopularNews(): Promise<NewsArticle[]> {
   const sql = getDb();
-  const rows = await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND source_name = ANY($1) ORDER BY views DESC, published_at DESC LIMIT 5`, [activeSources]);
+  const rows = await sql.query(`SELECT ${articleFields} FROM news_articles WHERE status = 'published' AND ${knownSource} ORDER BY views DESC, published_at DESC LIMIT 5`);
   return rows.map(publicArticle);
 }
 
 export async function getNewsBySlug(slug: string): Promise<NewsArticle | null> {
   const sql = getDb();
-  const rows = await sql.query(`SELECT ${articleFields} FROM news_articles WHERE slug = $1 AND status = 'published' AND source_name = ANY($2) LIMIT 1`, [slug, activeSources]);
+  const rows = await sql.query(`SELECT ${articleFields} FROM news_articles WHERE slug = $1 AND status = 'published' AND ${knownSource} LIMIT 1`, [slug]);
   return rows[0] ? publicArticle(rows[0]) : null;
 }
 
